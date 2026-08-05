@@ -1,18 +1,14 @@
-//
-//  NutritionAssistantApp.swift
-//  NutritionAssistant
-//
-//  Created by Daniel Becker on 5/20/26.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct NutritionAssistantApp: App {
     var sharedModelContainer: ModelContainer = {
+        // We add UserSettings.self to the schema list!
         let schema = Schema([
             FoodItem.self,
+            ConsumedItem.self,
+            UserSettings.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -27,6 +23,6 @@ struct NutritionAssistantApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [FoodItem.self, ConsumedItem.self])
+        .modelContainer(sharedModelContainer)
     }
 }

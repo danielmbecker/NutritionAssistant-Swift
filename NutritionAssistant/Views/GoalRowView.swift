@@ -1,18 +1,21 @@
-//
-//  GoalRowView.swift
-//  NutritionAssistant
-//
-//  Created by Daniel Becker on 7/13/26.
-//
-
 import SwiftUI
 
 struct GoalRowView: View {
+    let title: String
+    @Binding var value: Int?
+    let suffix: String
+    let action: () -> Void
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.headline)
+            Spacer()
+            SuffixTextField(value: $value, suffix: suffix)
+            
+            // NEW: Using our beautifully animated button
+            AnimatedSaveButton(action: action)
+        }
+        .padding(.vertical, 4)
     }
-}
-
-#Preview {
-    GoalRowView()
 }

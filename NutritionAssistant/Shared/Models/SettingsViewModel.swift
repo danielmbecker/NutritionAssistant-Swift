@@ -1,8 +1,100 @@
-//
-//  SettingsViewModel.swift
-//  NutritionAssistant
-//
-//  Created by Daniel Becker on 7/13/26.
-//
+import SwiftUI
+import SwiftData
 
-import Foundation
+@Observable
+class SettingsViewModel {
+    // Core State Variables
+    var calorieInput: Int?
+    var fatInput: Int?
+    var carbInput: Int?
+    var proteinInput: Int?
+    
+    // Micronutrient State Variables
+    var satFatInput: Int?
+    var transFatInput: Int?
+    var fiberInput: Int?
+    var sugarInput: Int?
+    
+    // MARK: - Initialization Logic
+    
+    func initializeSettingsIfNeeded(settingsList: [UserSettings], context: ModelContext) {
+        if settingsList.isEmpty {
+            let defaultSettings = UserSettings()
+            context.insert(defaultSettings)
+            load(from: defaultSettings)
+        } else if let currentSettings = settingsList.first {
+            load(from: currentSettings)
+        }
+    }
+    
+    private func load(from settings: UserSettings) {
+        calorieInput = settings.userCaloriesGoal
+        fatInput = settings.userFatGoal
+        carbInput = settings.userCarbGoal
+        proteinInput = settings.userProteinGoal
+        
+        satFatInput = settings.userSaturatedFatGoal
+        transFatInput = settings.userTransFatGoal
+        fiberInput = settings.userDietaryFiberGoal
+        sugarInput = settings.userAddedSugarGoal
+    }
+    
+    // MARK: - Database Save Actions
+    
+    // The newly combined Calorie and Macro save function
+    func saveCalorieAndMacros(settingsList: [UserSettings]) {
+        if let rawGoal = calorieInput, let currentSettings = settingsList.first {
+            let cappedGoal = min(max(rawGoal, 0), 10000)
+            
+            currentSettings.userCaloriesGoal = cappedGoal
+            calorieInput = cappedGoal
+            
+            if let newFat = fatInput { currentSettings.userFatGoal = newFat }
+            if let newCarbs = carbInput { currentSettings.userCarbGoal = newCarbs }
+            if let newProtein = proteinInput { currentSettings.userProteinGoal = newProtein }
+            
+            hideKeyboard()
+        }
+    }
+    
+    func saveMacroGoal(settingsList: [UserSettings]) {
+        if let currentSettings = settingsList.first {
+            if let newFat = fatInput { currentSettings.userFatGoal = newFat }
+            if let newCarbs = carbInput { currentSettings.userCarbGoal = newCarbs }
+            if let newProtein = proteinInput { currentSettings.userProteinGoal = newProtein }
+            hideKeyboard()
+        }
+    }
+    
+    func saveSatFatGoal(settingsList: [UserSettings]) {
+        if let newGoal = satFatInput, let currentSettings = settingsList.first {
+            currentSettings.userSaturatedFatGoal = newGoal
+            hideKeyboard()
+        }
+    }
+    
+    func saveTransFatGoal(settingsList: [UserSettings]) {
+        if let newGoal = transFatInput, let currentSettings = settingsList.first {
+            currentSettings.userTransFatGoal = newGoal
+            hideKeyboard()
+        }
+    }
+    
+    func saveFiberGoal(settingsList: [UserSettings]) {
+        if let newGoal = fiberInput, let currentSettings = settingsList.first {
+            currentSettings.userDietaryFiberGoal = newGoal
+            hideKeyboard()
+        }
+    }
+    
+    func saveSugarGoal(settingsList: [UserSettings]) {
+        if let newGoal = sugarInput, let currentSettings = settingsList.first {
+            currentSettings.userAddedSugarGoal = newGoal
+            hideKeyboard()
+        }
+    }
+    
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}

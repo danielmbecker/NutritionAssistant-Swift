@@ -1,18 +1,29 @@
-//
-//  SingleFoodMetricDisplayView.swift
-//  NutritionAssistant
-//
-//  Created by Daniel Becker on 7/12/26.
-//
-
 import SwiftUI
 
 struct SingleFoodMetricDisplayView: View {
+    let title: String
+    let valueText: String
+    let color: Color
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        VStack(spacing: 8) {
+            Text(valueText)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
 #Preview {
-    SingleFoodMetricDisplayView()
+    SingleFoodMetricDisplayView(title: "Protein", valueText: "145g", color: .red)
+        .padding()
 }

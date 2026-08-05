@@ -1,8 +1,85 @@
-//
-//  UserSettings.swift
-//  NutritionAssistant
-//
-//  Created by Daniel Becker on 7/12/26.
-//
-
 import Foundation
+import SwiftData
+
+enum GoalType: String, Codable {
+    case goal = "Goal"
+    case limit = "Limit"
+}
+
+@Model
+class UserSettings {
+    var userCaloriesGoal: Int
+    var userCaloriesGoalType: GoalType
+    
+    var userFatGoal: Int
+    var userFatGoalType: GoalType
+    
+    var userSaturatedFatGoal: Int
+    var userSaturatedFatGoalType: GoalType
+    
+    var userTransFatGoal: Int
+    var userTransFatGoalType: GoalType
+    
+    var userProteinGoal: Int
+    var userProteinGoalType: GoalType
+    
+    var userCarbGoal: Int
+    var userCarbGoalType: GoalType
+    
+    var userDietaryFiberGoal: Int
+    var userDietaryFiberGoalType: GoalType
+    
+    var userAddedSugarGoal: Int
+    var userAddedSugarGoalType: GoalType
+    
+    // Initializer with beautifully balanced mathematical defaults!
+    init(
+        userCaloriesGoal: Int = 2000,
+        userCaloriesGoalType: GoalType = .goal,
+        
+        userFatGoal: Int = 80, // Updated to 80
+        userFatGoalType: GoalType = .limit,
+        
+        userSaturatedFatGoal: Int = 20,
+        userSaturatedFatGoalType: GoalType = .limit,
+        
+        userTransFatGoal: Int = 0,
+        userTransFatGoalType: GoalType = .limit,
+        
+        userProteinGoal: Int = 110, // Updated to 110
+        userProteinGoalType: GoalType = .goal,
+        
+        userCarbGoal: Int = 210, // Updated to 210
+        userCarbGoalType: GoalType = .goal,
+        
+        userDietaryFiberGoal: Int = 28,
+        userDietaryFiberGoalType: GoalType = .goal,
+        
+        userAddedSugarGoal: Int = 50,
+        userAddedSugarGoalType: GoalType = .limit
+    ) {
+        self.userCaloriesGoal = userCaloriesGoal
+        self.userCaloriesGoalType = userCaloriesGoalType
+        
+        self.userFatGoal = userFatGoal
+        self.userFatGoalType = userFatGoalType
+        
+        self.userSaturatedFatGoal = userSaturatedFatGoal
+        self.userSaturatedFatGoalType = userSaturatedFatGoalType
+        
+        self.userTransFatGoal = userTransFatGoal
+        self.userTransFatGoalType = userTransFatGoalType
+        
+        self.userProteinGoal = userProteinGoal
+        self.userProteinGoalType = userProteinGoalType
+        
+        self.userCarbGoal = userCarbGoal
+        self.userCarbGoalType = userCarbGoalType
+        
+        self.userDietaryFiberGoal = userDietaryFiberGoal
+        self.userDietaryFiberGoalType = userDietaryFiberGoalType
+        
+        self.userAddedSugarGoal = userAddedSugarGoal
+        self.userAddedSugarGoalType = userAddedSugarGoalType
+    }
+}
