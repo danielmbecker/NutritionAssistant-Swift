@@ -1,20 +1,20 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct AddFoodView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var brandName: String = "Unbranded"
     @State private var isUnbranded: Bool = true
     @FocusState private var isBrandNameFocused: Bool
-    
+
     @State private var name: String = ""
     @State private var processingLevel: String = "Whole"
     @State private var servingSize: Double?
     @State private var servingUnit: String = "g"
     @State private var calories: Int?
-    
+
     @State private var fat: Double?
     @State private var saturatedFat: Double?
     @State private var transFat: Double?
@@ -23,14 +23,10 @@ struct AddFoodView: View {
     @State private var dietaryFiber: Double?
     @State private var addedSugar: Double?
     @State private var category: FoodCategory?
-    @State private var selectedItem = "Apple"
 
     private var isFormValid: Bool {
-        !brandName.isEmpty &&
-        !name.isEmpty &&
-        servingSize != nil &&
-        calories != nil &&
-        category != nil
+        !brandName.isEmpty && !name.isEmpty && servingSize != nil && calories != nil
+            && category != nil
     }
 
     private var calculatedCalories: String {
@@ -38,49 +34,49 @@ struct AddFoodView: View {
         let currentProtein = protein ?? 0.0
         let currentCarb = carb ?? 0.0
         let currentFiber = dietaryFiber ?? 0.0
-        
+
         let fatCalories = currentFat * 9.0
         let proteinCalories = currentProtein * 4.0
-        
+
         let netCarbs = max(0.0, currentCarb - currentFiber)
         let netCarbCalories = netCarbs * 4.0
-        
+
         let baseCalories = fatCalories + proteinCalories + netCarbCalories
-        
+
         let minCalories = Int(round(baseCalories))
         let maxCalories = Int(round(baseCalories + (currentFiber * 4.0)))
-        
+
         if minCalories == maxCalories {
             return "\(minCalories)"
         } else {
             return "\(minCalories) - \(maxCalories)"
         }
     }
-    
+
     // MARK: - func calculatedCaloriesColor
-    
+
     private var calculatedCaloriesColor: Color {
-        // NEW: Returns gray if all primary macros are entirely empty
+        // Returns gray if all primary macros are entirely empty
         if fat == nil && protein == nil && carb == nil {
             return .gray
         }
-        
+
         guard let inputKcal = calories else { return .red }
-        
+
         let currentFat = fat ?? 0.0
         let currentProtein = protein ?? 0.0
         let currentCarb = carb ?? 0.0
         let currentFiber = dietaryFiber ?? 0.0
-        
+
         let netCarbs = max(0.0, currentCarb - currentFiber)
         let baseCalories = (currentFat * 9.0) + (currentProtein * 4.0) + (netCarbs * 4.0)
-        
+
         let minCalculated = baseCalories
         let maxCalculated = baseCalories + (currentFiber * 4.0)
-        
+
         let lowerBound = Double(inputKcal) * 0.90
         let upperBound = Double(inputKcal) * 1.10
-        
+
         if maxCalculated >= lowerBound && minCalculated <= upperBound {
             return .green
         } else {
@@ -90,30 +86,15 @@ struct AddFoodView: View {
 
     let unitOptions = ["g", "oz", "ml", "unit"]
     let processingOptions = ["Engineered", "Processed", "Prepared", "Whole"]
-    let categoryOptions = ["Supplements",
-                           "Meat",
-                           "Dairy",
-                           "Eggs",
-                           "Breads/Cereals/Grains",
-                           "Nuts & Seeds",
-                           "Vegetables",
-                           "Fruit",
-                           "Drink",
-                           "Sugar",
-                           "Sweet Snack",
-                           "Salty Snack",
-                           "Oil",
-                           "Spreads/Sauces/Condiments",
-                           "Prepared Food"]
 
     // MARK: - View Body
     var body: some View {
         List {
             Section(header: Text("Create New Food Template")) {
-                
+
                 HStack {
                     Text("Brand Name")
-                    
+
                     Button(action: {
                         isUnbranded.toggle()
                         if isUnbranded {
@@ -133,9 +114,9 @@ struct AddFoodView: View {
                             .cornerRadius(6)
                     }
                     .buttonStyle(.plain)
-                    
+
                     Spacer()
-                    
+
                     TextField("e.g. Chiquita", text: $brandName)
                         .multilineTextAlignment(.trailing)
                         .focused($isBrandNameFocused)
@@ -146,14 +127,14 @@ struct AddFoodView: View {
                             }
                         }
                 }
-                
+
                 HStack {
                     Text("Food Name")
                     Spacer()
                     TextField("e.g. Banana", text: $name)
                         .multilineTextAlignment(.trailing)
                 }
-                
+
                 Picker("Processing Level", selection: $processingLevel) {
                     ForEach(processingOptions, id: \.self) { option in
                         Text(option)
@@ -161,78 +142,48 @@ struct AddFoodView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.vertical, 4)
-                
-                
-                Picker("Category", selection: $category) {
-                    ForEach(categoryOptions, id: \.self) { option in
-                        Text(option)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .padding(.vertical, 4)
-                
-                
-//                ScrollView(.horizontal, showsIndicators: false) {
-//                    HStack(spacing: 12) {
-//                        ForEach(categoryOptions, id: \.self) {item in
-//                            Button(action: {
-//                                withAnimation(selectedItem = item
-//                            }
-//                        }) {
-//                            Text(item)
-//                                .fontWeight(.ultraLight)
-//                                .padding(4)
-//                                .background(selectedItem == item ? color.pink : color.gray)
-//                                .foregroundStyle(selectedItem == item ? .white : .primary)
-//                                .clipShape(Capsule())
-//                            
-//                        }
-//                    }
-//                }
-//                .padding(4)
-//            }}}
+
+                // Category chip selector — drives the FoodCategory? binding directly
                 ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(categoryOptions, id: \.self) { item in
-                                    Button(action: {
-                                        // Update the selection when tapped
-                                        withAnimation {
-                                            selectedItem = item
-                                        }
-                                    }) {
-                                        Text(item)
-                                            .fontWeight(.medium)
-                                            .padding(.vertical, 10)
-                                            .padding(.horizontal, 16)
-                                            // Highlight the selected item
-                                            .background(selectedItem == item ? Color.blue : Color.gray.opacity(0.15))
-                                            .foregroundColor(selectedItem == item ? .white : .primary)
-                                            .clipShape(Capsule())
-                                    }
+                    HStack(spacing: 12) {
+                        ForEach(FoodCategory.allCases, id: \.self) { foodCategory in
+                            Button(action: {
+                                withAnimation {
+                                    category = foodCategory
                                 }
+                            }) {
+                                Text(foodCategory.rawValue)
+                                    .fontWeight(.medium)
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 16)
+                                    .background(
+                                        category == foodCategory ? Color.blue : Color.gray.opacity(0.15)
+                                    )
+                                    .foregroundColor(category == foodCategory ? .white : .primary)
+                                    .clipShape(Capsule())
                             }
-                            .padding(.horizontal) // Adds nice padding to the edges of the screen
                         }
-                    
-                
-                
+                    }
+                    .padding(.horizontal)
+                }
+
                 HStack {
                     Text("Serving Size")
                     Spacer()
-                    
+
                     Picker("", selection: $servingUnit) {
                         ForEach(unitOptions, id: \.self) { unit in
                             Text(unit)
                         }
                     }
                     .pickerStyle(.menu)
-                    
+
                     TextField("0", value: $servingSize, format: .number)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 60)
                         .keyboardType(.decimalPad)
                 }
-                
+
                 HStack {
                     Text("Calories")
                     Spacer()
@@ -240,7 +191,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.numberPad)
                 }
-                
+
                 HStack {
                     Text("Calculated Calories")
                         .foregroundColor(.secondary)
@@ -250,7 +201,7 @@ struct AddFoodView: View {
                         .fontWeight(.semibold)
                 }
                 .padding(.bottom, 4)
-                
+
                 HStack {
                     Text("Fat (g)")
                     Spacer()
@@ -264,7 +215,7 @@ struct AddFoodView: View {
                             }
                         }
                 }
-                
+
                 HStack {
                     Text("Saturated Fat (g)")
                         .padding(.leading, 20)
@@ -274,7 +225,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                 }
-                
+
                 HStack {
                     Text("Trans Fat (g)")
                         .padding(.leading, 20)
@@ -284,7 +235,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                 }
-                
+
                 HStack {
                     Text("Carbs (g)")
                     Spacer()
@@ -292,7 +243,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                 }
-                
+
                 HStack {
                     Text("Dietary Fiber (g)")
                         .padding(.leading, 20)
@@ -302,7 +253,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                 }
-                
+
                 HStack {
                     Text("Added Sugar (g)")
                         .padding(.leading, 20)
@@ -312,8 +263,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                 }
-                
-                // Moved Protein to be strictly underneath Added Sugar
+
                 HStack {
                     Text("Protein (g)")
                     Spacer()
@@ -321,7 +271,7 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                         .keyboardType(.decimalPad)
                 }
-                
+
                 Button("Save to Database") {
                     addItem()
                 }
@@ -332,6 +282,7 @@ struct AddFoodView: View {
     }
 
     private func addItem() {
+        guard let selectedCategory = category else { return }
         withAnimation {
             let newItem = FoodItem(
                 timestamp: Date(),
@@ -347,9 +298,10 @@ struct AddFoodView: View {
                 protein: protein ?? 0.0,
                 carb: carb ?? 0.0,
                 dietaryFiber: dietaryFiber ?? 0.0,
-                addedSugar: addedSugar ?? 0.0
+                addedSugar: addedSugar ?? 0.0,
+                category: selectedCategory
             )
-            
+
             modelContext.insert(newItem)
             dismiss()
         }
