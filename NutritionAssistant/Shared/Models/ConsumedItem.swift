@@ -2,7 +2,8 @@ import Foundation
 import SwiftData
 
 @Model
-class ConsumedItem {
+final class ConsumedItem {
+    var id: UUID = UUID()
     var timestamp: Date
     var logicalDate: Date // NEW: The specific "Day" this belongs to!
     var name: String
@@ -18,7 +19,11 @@ class ConsumedItem {
     var addedSugar: Double
     var category: FoodCategory
     
-    init(timestamp: Date, logicalDate: Date, name: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: FoodCategory = .preparedFoods) {
+    var isRecipe: Bool
+    var recipeCategory: RecipeCategory?
+    var recipeIngredients: [RecipeIngredient]?
+    
+    init(timestamp: Date, logicalDate: Date, name: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: FoodCategory = .preparedFoods, isRecipe: Bool = false, recipeCategory: RecipeCategory? = nil, recipeIngredients: [RecipeIngredient]? = nil) {
         self.timestamp = timestamp
         self.logicalDate = logicalDate
         self.name = name
@@ -33,6 +38,9 @@ class ConsumedItem {
         self.dietaryFiber = dietaryFiber
         self.addedSugar = addedSugar
         self.category = category
+        self.isRecipe = isRecipe
+        self.recipeCategory = recipeCategory
+        self.recipeIngredients = recipeIngredients
     }
 }
 

@@ -307,3 +307,8 @@ struct AddFoodView: View {
         }
     }
 }
+
+#Preview {
+    AddFoodView()
+        .modelContainer(for: [FoodItem.self], inMemory: true)
+}

@@ -3,13 +3,21 @@ import SwiftData
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var userSettingsList: [UserSettings]
     
-    @AppStorage("dayStartHour") private var dayStartHour: Int = 0
+    private var dayStartHour: Int {
+        userSettingsList.first?.dayStartHour ?? 0
+    }
     
     @Query(sort: \ConsumedItem.timestamp, order: .reverse) private var consumedItems: [ConsumedItem]
     
+    @State private var itemToView: ConsumedItem?
     @State private var itemToEdit: ConsumedItem?
+    @State private var itemToEditIngredients: ConsumedItem?
+    @State private var customizedIngredients: [RecipeIngredient] = []
     @State private var adjustedServingSize: Double = 0.0
+    /// Captures the serving size at the moment the edit sheet opens, before any mutation.
+    @State private var editBaseServingSize: Double = 0.0
     
     private var todaysItems: [ConsumedItem] {
         let todayLogical = Date().logicalDay(startHour: dayStartHour)
@@ -123,18 +131,38 @@ struct TodayView: View {
                                 }
                                 .padding(.vertical, 4)
                                 .listRowSeparator(.hidden)
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        itemToEdit = item
-                                        adjustedServingSize = item.servingSize
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if item.isRecipe {
+                                        itemToView = item
                                     }
-                                    .tint(.orange)
                                 }
-                            }
-                            .onDelete { offsets in
-                                deleteItems(at: offsets, in: group.items)
+                                .contextMenu {
+                                    if item.isRecipe {
+                                        Button {
+                                            itemToEditIngredients = item
+                                        } label: {
+                                            Label("Edit Ingredients", systemImage: "list.bullet")
+                                        }
+                                    } else {
+                                        Button {
+                                            editBaseServingSize = item.servingSize
+                                            adjustedServingSize = item.servingSize
+                                            itemToEdit = item
+                                        } label: {
+                                            Label("Edit Served Portion", systemImage: "pencil")
+                                        }
+                                    }
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            modelContext.delete(item)
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                     }
@@ -155,10 +183,61 @@ struct TodayView: View {
                     subtitle: "Update your logged amount",
                     unit: item.servingUnit,
                     value: $adjustedServingSize,
-                    baseValue: item.servingSize,
+                    baseValue: editBaseServingSize,
                     onDismiss: { itemToEdit = nil },
-                    onSave: { updateConsumedItem(item, newAmount: adjustedServingSize) }
+                    onSave: { 
+                        if item.isRecipe && !customizedIngredients.isEmpty {
+                            updateConsumedRecipe(item, customIngredients: customizedIngredients, newAmount: adjustedServingSize)
+                            customizedIngredients = []
+                        } else {
+                            updateConsumedItem(item, newAmount: adjustedServingSize)
+                        }
+                    }
                 )
+            }
+            .sheet(item: $itemToEditIngredients) { item in
+                RecipeWeightsHalfSheetSelector(
+                    initialIngredients: item.recipeIngredients ?? [],
+                    onNext: { customIngredients in
+                        customizedIngredients = customIngredients
+                        
+                        editBaseServingSize = customIngredients.reduce(0) { $0 + $1.recipeWeight }
+                        adjustedServingSize = item.servingSize
+                        
+                        // Small delay to allow the first sheet to dismiss smoothly
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            itemToEdit = item
+                        }
+                    }
+                )
+            }
+            .popover(item: $itemToView) { item in
+                NavigationStack {
+                    List {
+                        if let ingredients = item.recipeIngredients, !ingredients.isEmpty {
+                            ForEach(ingredients) { ingredient in
+                                HStack {
+                                    Text(ingredient.name)
+                                        .fontWeight(.medium)
+                                    Spacer()
+                                    Text("\(String(format: "%.1f", ingredient.recipeWeight)) \(ingredient.servingUnit)")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        } else {
+                            Text("No ingredient details available.")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .navigationTitle("Ingredients")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") { itemToView = nil }
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
             }
         }
     }
@@ -186,6 +265,44 @@ struct TodayView: View {
         item.servingSize = newAmount
     }
     
+    private func updateConsumedRecipe(_ item: ConsumedItem, customIngredients: [RecipeIngredient], newAmount: Double) {
+        let baseTotalWeight = customIngredients.reduce(0) { $0 + $1.recipeWeight }
+        let ratio = baseTotalWeight > 0 ? (newAmount / baseTotalWeight) : 1.0
+        
+        var totalCalories: Double = 0
+        var totalFat: Double = 0
+        var totalSaturatedFat: Double = 0
+        var totalTransFat: Double = 0
+        var totalProtein: Double = 0
+        var totalCarb: Double = 0
+        var totalDietaryFiber: Double = 0
+        var totalAddedSugar: Double = 0
+        
+        for ingredient in customIngredients {
+            let ingredientRatio = ingredient.servingSize > 0 ? (ingredient.recipeWeight / ingredient.servingSize) : 1.0
+            totalCalories += Double(ingredient.calories) * ingredientRatio
+            totalFat += ingredient.fat * ingredientRatio
+            totalSaturatedFat += ingredient.saturatedFat * ingredientRatio
+            totalTransFat += ingredient.transFat * ingredientRatio
+            totalProtein += ingredient.protein * ingredientRatio
+            totalCarb += ingredient.carb * ingredientRatio
+            totalDietaryFiber += ingredient.dietaryFiber * ingredientRatio
+            totalAddedSugar += ingredient.addedSugar * ingredientRatio
+        }
+        
+        item.calories = Int(round(totalCalories * ratio))
+        item.fat = totalFat * ratio
+        item.saturatedFat = totalSaturatedFat * ratio
+        item.transFat = totalTransFat * ratio
+        item.protein = totalProtein * ratio
+        item.carb = totalCarb * ratio
+        item.dietaryFiber = totalDietaryFiber * ratio
+        item.addedSugar = totalAddedSugar * ratio
+        
+        item.servingSize = newAmount
+        item.recipeIngredients = customIngredients
+    }
+    
     private func formattedRoundedTime(for date: Date) -> String {
         let calendar = Calendar.current
         let minute = calendar.component(.minute, from: date)
@@ -199,4 +316,9 @@ struct TodayView: View {
         formatter.timeStyle = .short
         return formatter.string(from: roundedDate)
     }
+}
+
+#Preview {
+    TodayView()
+        .modelContainer(for: [UserSettings.self, ConsumedItem.self], inMemory: true)
 }

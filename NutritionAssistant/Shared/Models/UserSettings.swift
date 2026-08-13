@@ -7,7 +7,8 @@ enum GoalType: String, Codable {
 }
 
 @Model
-class UserSettings {
+final class UserSettings {
+    var id: UUID = UUID()
     var userCaloriesGoal: Int
     var userCaloriesGoalType: GoalType
     
@@ -31,6 +32,10 @@ class UserSettings {
     
     var userAddedSugarGoal: Int
     var userAddedSugarGoalType: GoalType
+    
+    var dayStartHour: Int
+    
+    var userSelectedPrimaryColorHex: String
     
     // Initializer with beautifully balanced mathematical defaults!
     init(
@@ -56,7 +61,11 @@ class UserSettings {
         userDietaryFiberGoalType: GoalType = .goal,
         
         userAddedSugarGoal: Int = 50,
-        userAddedSugarGoalType: GoalType = .limit
+        userAddedSugarGoalType: GoalType = .limit,
+        
+        dayStartHour: Int = 0,
+        
+        userSelectedPrimaryColorHex: String = "#007AFF"
     ) {
         self.userCaloriesGoal = userCaloriesGoal
         self.userCaloriesGoalType = userCaloriesGoalType
@@ -81,5 +90,8 @@ class UserSettings {
         
         self.userAddedSugarGoal = userAddedSugarGoal
         self.userAddedSugarGoalType = userAddedSugarGoalType
+        
+        self.dayStartHour = dayStartHour
+        self.userSelectedPrimaryColorHex = userSelectedPrimaryColorHex
     }
 }

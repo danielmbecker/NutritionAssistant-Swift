@@ -4,6 +4,7 @@ import SwiftData
 struct FoodBankView: View {
     @AppStorage("dayStartHour") private var dayStartHour: Int = 0
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query private var items: [FoodItem]
     
     @State private var showingAddFood = false
@@ -11,43 +12,64 @@ struct FoodBankView: View {
     @State private var itemToLog: FoodItem?
     @State private var adjustedServingSize: Double = 0.0
 
+    var groupedItems: [(category: FoodCategory, items: [FoodItem])] {
+        let grouped = Dictionary(grouping: items, by: { $0.category })
+        return grouped.map { (category: $0.key, items: $0.value.sorted { $0.name < $1.name }) }
+            .sorted { $0.category.displayOrder < $1.category.displayOrder }
+    }
+
     var body: some View {
-        NavigationSplitView {
-            List {
-                Section(header: Text("My Food Database")) {
-                    ForEach(items) { item in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(item.name)
-                                    .font(.headline)
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    ForEach(groupedItems, id: \.category) { group in
+                        LazyVStack(alignment: .leading, spacing: 1) {
+                            Text(group.category.displayName)
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal) 
+//                                .padding(.top, 8)
+                            
+                            ForEach(group.items) { item in
+                                HStack(spacing: 0) {
+                                    Text(item.name)
+                                        .font(.caption)
+                                    Spacer()
+                                    Text("\(item.calories) kcal | F: \(String(format: "%g", item.fat))g | C: \(String(format: "%g", item.carb))g | P: \(String(format: "%g", item.protein))g")
+                                        .font(.caption).italic()
+                                        .foregroundColor(.secondary)
+                                    
+                                    
+                                    
+                                 
+                                }
+                                .padding(.horizontal)
+                                .padding(.vertical, 0)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    adjustedServingSize = item.servingSize
+                                    itemToLog = item
+                                }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            modelContext.delete(item)
+                                        }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                                 
-                                Text("\(item.calories) kcal | F: \(String(format: "%g", item.fat))g | P: \(String(format: "%g", item.protein))g | C: \(String(format: "%g", item.carb))g")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                Divider()
+                                    .padding(.leading)
                             }
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                adjustedServingSize = item.servingSize
-                                itemToLog = item
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(.blue)
-                                    .font(.title2)
-                            }
-                            .buttonStyle(.plain)
                         }
-                        .padding(.vertical, 4)
-                    }
-                    .onDelete(perform: deleteItems)
+                    }.padding().background(colorScheme == .dark ? Color(hex: "0f0f0f") : Color(hex: "FAFAFA")).cornerRadius(10)
                 }
+                .padding(.vertical)
             }
             .navigationTitle("Food Bank")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
                 ToolbarItem {
                     Button(action: { showingAddFood = true }) {
                         Label("Add New Food", systemImage: "plus")
@@ -69,18 +91,10 @@ struct FoodBankView: View {
                     onSave: { logFood(item, amount: adjustedServingSize) }
                 )
             }
-        } detail: {
-            Text("Select an item")
         }
     }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
+
     
     private func logFood(_ item: FoodItem, amount: Double) {
         let ratio = item.servingSize > 0 ? (amount / item.servingSize) : 1.0
@@ -103,5 +117,28 @@ struct FoodBankView: View {
         )
 
         modelContext.insert(loggedItem)
+    }
+}
+
+#Preview {
+    do {
+        // 1. Create a temporary, in-memory configuration so we don't save mock data permanently
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        
+        // 2. Initialize the container.
+        // (I included ConsumedItem here as well, since your view references it when logging food!)
+        let container = try ModelContainer(for: FoodItem.self, ConsumedItem.self, configurations: config)
+        
+        // 3. Loop through our hardcoded array and insert each item into the preview's context
+        for item in FoodItem.previewData {
+            container.mainContext.insert(item)
+        }
+        
+        // 4. Return your view and attach the mock container to it
+        return FoodBankView()
+            .modelContainer(container)
+            
+    } catch {
+        fatalError("Failed to create preview container: \(error.localizedDescription)")
     }
 }
