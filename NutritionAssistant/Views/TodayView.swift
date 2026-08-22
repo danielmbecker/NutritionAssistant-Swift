@@ -18,6 +18,8 @@ struct TodayView: View {
     @State private var adjustedServingSize: Double = 0.0
     /// Captures the serving size at the moment the edit sheet opens, before any mutation.
     @State private var editBaseServingSize: Double = 0.0
+    @State private var showSettings = false
+    @State private var showResetTime = false
     
     private var todaysItems: [ConsumedItem] {
         let todayLogical = Date().logicalDay(startHour: dayStartHour)
@@ -48,7 +50,7 @@ struct TodayView: View {
     // NEW: Dynamically formats today's date for the header
     private var currentDateString: String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .long // Outputs something like "July 12, 2026"
+        formatter.dateFormat = "EEEE MMM d"
         return formatter.string(from: Date())
     }
     
@@ -64,22 +66,36 @@ struct TodayView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 
-                // NEW: Our beautiful custom header replacing the standard navigation title!
+
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(currentDateString)
                         .font(.largeTitle)
                         .fontWeight(.bold)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showResetTime = true
+                            }
+                            // Hide after 2 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showResetTime = false
+                                }
+                            }
+                        }
                     
-                    Text("day resets at \(timeString(for: dayStartHour))")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    if showResetTime {
+                        Text("day resets at \(timeString(for: dayStartHour))")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .transition(.opacity.combined(with: .move(edge: .leading)))
+                    }
                     
                     Spacer()
                 }
                 .padding(.horizontal)
                 .padding(.top, 16)
                 
-                CalorieEtcDataView(
+                TodayViewVisualDataBar(
                     calories: totalCalories,
                     carbs: totalCarbs,
                     protein: totalProtein,
@@ -120,7 +136,7 @@ struct TodayView: View {
                                     Spacer()
                                     
                                     VStack(alignment: .trailing) {
-                                        Text("\(item.calories) kcal")
+                                        Text("\(item.calories)")
                                             .font(.subheadline)
                                             .fontWeight(.semibold)
                                         
@@ -171,11 +187,14 @@ struct TodayView: View {
             // By omitting the .navigationTitle here, we let our custom header shine!
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
+                    Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape.fill")
                             .foregroundColor(.primary)
                     }
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
             .sheet(item: $itemToEdit) { item in
                 RadialHalfSheetSelector(

@@ -29,6 +29,6 @@ struct AnimatedSaveButton: View {
             .fontWeight(.bold)
         }
         .buttonStyle(.borderedProminent)
-        .tint(isSaved ? .green : .blue)
+        .tint(isSaved ? .green : .accentColor)
     }
 }

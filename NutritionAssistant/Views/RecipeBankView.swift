@@ -79,7 +79,7 @@ struct RecipeBankView: View {
             }
             .sheet(item: $recipeToLog) { recipe in
                 RadialHalfSheetSelector(
-                    title: "How Much?",
+                    title: "How much \(recipe.name)?",
                     subtitle: "Input your served portion",
                     unit: recipe.measurementType == .fraction ? "Serving" : "g",
                     value: $adjustedAmount,

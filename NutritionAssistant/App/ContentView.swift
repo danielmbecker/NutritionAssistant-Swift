@@ -16,24 +16,34 @@ struct ContentView: View {
     // 2. We set the default starting value to our "today" tab
     @State private var selectedTab: Tab = .today
     
-    @State private var showingDiscardAlert = false
-    @State private var pendingTab: Tab? = nil
     @State private var addRecipeID = UUID() // Used to reset AddRecipieView state
     @State private var isAddRecipeDirty = false // Tracks if user modified anything
+    @State private var lastLeftAddRecipeTime: Date? = nil
     
     // Custom binding to intercept tab changes
     private var tabBinding: Binding<Tab> {
         Binding(
             get: { selectedTab },
             set: { newTab in
-                if selectedTab == .addRecipe && newTab != .addRecipe && isAddRecipeDirty {
-                    pendingTab = newTab
-                    showingDiscardAlert = true
-                } else {
-                    selectedTab = newTab
+                if selectedTab == .addRecipe && newTab != .addRecipe {
+                    // Record timestamp when leaving AddRecipe
+                    lastLeftAddRecipeTime = Date()
+                } else if selectedTab != .addRecipe && newTab == .addRecipe {
+                    // Check if 180 seconds have elapsed since we left
+                    if let leftTime = lastLeftAddRecipeTime, Date().timeIntervalSince(leftTime) > 180 {
+                        addRecipeID = UUID()
+                        isAddRecipeDirty = false
+                    }
+                    lastLeftAddRecipeTime = nil
                 }
+                selectedTab = newTab
             }
         )
+    }
+    @Query private var userSettingsList: [UserSettings]
+    
+    var primaryColor: Color {
+        Color(hex: userSettingsList.first?.userSelectedPrimaryColorHex ?? "#007AFF")
     }
     
     var body: some View {
@@ -72,20 +82,8 @@ struct ContentView: View {
                 .tag(Tab.addRecipe)
            
         }
-        .alert("Discard Recipe?", isPresented: $showingDiscardAlert) {
-            Button("Discard", role: .destructive) {
-                if let nextTab = pendingTab {
-                    selectedTab = nextTab
-                    addRecipeID = UUID() // Triggers state reset of AddRecipieView
-                    isAddRecipeDirty = false // Reset dirty flag
-                }
-            }
-            Button("Cancel", role: .cancel) {
-                pendingTab = nil
-            }
-        } message: {
-            Text("Are you sure you want to leave? Your recipe entry will be lost.")
-        }
+        .tint(primaryColor)
+        .accentColor(primaryColor)
     }
 }
 

@@ -31,7 +31,7 @@ struct AddRecipieView: View {
                                 Text("Fractional (1 Whole, 1/2, 1/4, etc)")
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 12)
-                                    .background(recipe.measurementType == .fraction ? Color.blue : Color.gray.opacity(0.2))
+                                    .background(recipe.measurementType == .fraction ? Color.accentColor : Color.gray.opacity(0.2))
                                     .foregroundColor(recipe.measurementType == .fraction ? .white : .primary)
                                     .cornerRadius(8)
                             }
@@ -41,7 +41,7 @@ struct AddRecipieView: View {
                                 Text("Weight (grams, ounces)")
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 12)
-                                    .background(recipe.measurementType == .weight ? Color.blue : Color.gray.opacity(0.2))
+                                    .background(recipe.measurementType == .weight ? Color.accentColor : Color.gray.opacity(0.2))
                                     .foregroundColor(recipe.measurementType == .weight ? .white : .primary)
                                     .cornerRadius(8)
                             }
@@ -61,7 +61,7 @@ struct AddRecipieView: View {
                                 Text("Yes")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
-                                    .background(recipe.cooked ? Color.blue : Color.gray.opacity(0.2))
+                                    .background(recipe.cooked ? Color.accentColor : Color.gray.opacity(0.2))
                                     .foregroundColor(recipe.cooked ? .white : .primary)
                                     .cornerRadius(8)
                             }
@@ -71,7 +71,7 @@ struct AddRecipieView: View {
                                 Text("No")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
-                                    .background(!recipe.cooked ? Color.blue : Color.gray.opacity(0.2))
+                                    .background(!recipe.cooked ? Color.accentColor : Color.gray.opacity(0.2))
                                     .foregroundColor(!recipe.cooked ? .white : .primary)
                                     .cornerRadius(8)
                             }
@@ -91,7 +91,7 @@ struct AddRecipieView: View {
                                 Text("Yes")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
-                                    .background(recipe.addedUntrackedWeight ? Color.blue : Color.gray.opacity(0.2))
+                                    .background(recipe.addedUntrackedWeight ? Color.accentColor : Color.gray.opacity(0.2))
                                     .foregroundColor(recipe.addedUntrackedWeight ? .white : .primary)
                                     .cornerRadius(8)
                             }
@@ -101,7 +101,7 @@ struct AddRecipieView: View {
                                 Text("No")
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
-                                    .background(!recipe.addedUntrackedWeight ? Color.blue : Color.gray.opacity(0.2))
+                                    .background(!recipe.addedUntrackedWeight ? Color.accentColor : Color.gray.opacity(0.2))
                                     .foregroundColor(!recipe.addedUntrackedWeight ? .white : .primary)
                                     .cornerRadius(8)
                             }
@@ -154,7 +154,7 @@ struct AddRecipieView: View {
                                     .fontWeight(.semibold)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(Color.blue)
+                                    .background(Color.accentColor)
                                     .foregroundColor(.white)
                                     .cornerRadius(8)
                             }
@@ -193,7 +193,7 @@ struct AddRecipieView: View {
                                         .cornerRadius(8)
                                 }
                                 .buttonStyle(.plain)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.accentColor)
                             }
                             .padding(.vertical, 4)
                         }

@@ -109,7 +109,7 @@ struct AddFoodView: View {
                             .fontWeight(.medium)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(isUnbranded ? Color.blue : Color.gray.opacity(0.2))
+                            .background(isUnbranded ? Color.accentColor : Color.gray.opacity(0.2))
                             .foregroundColor(isUnbranded ? .white : .primary)
                             .cornerRadius(6)
                     }
@@ -157,7 +157,7 @@ struct AddFoodView: View {
                                     .padding(.vertical, 10)
                                     .padding(.horizontal, 16)
                                     .background(
-                                        category == foodCategory ? Color.blue : Color.gray.opacity(0.15)
+                                        category == foodCategory ? Color.accentColor : Color.gray.opacity(0.15)
                                     )
                                     .foregroundColor(category == foodCategory ? .white : .primary)
                                     .clipShape(Capsule())

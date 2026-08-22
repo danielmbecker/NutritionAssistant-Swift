@@ -66,6 +66,7 @@ struct HistoryView: View {
 
     // MARK: State
     @State private var selectedPeriod: HistoryPeriod = .sevenDays
+    @State private var showSettings = false
 
     // MARK: - Date Helpers
     private var today: Date { Date().logicalDay(startHour: dayStartHour) }
@@ -247,15 +248,18 @@ struct HistoryView: View {
                             Image(systemName: "chevron.left").fontWeight(.semibold)
                             Text("Today")
                         }
-                        .foregroundColor(.blue)
+                        .foregroundColor(.accentColor)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
+                    Button(action: { showSettings = true }) {
                         Image(systemName: "gearshape.fill")
                             .foregroundColor(.primary)
                     }
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
         }
     }

@@ -23,7 +23,7 @@ struct FoodBankView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     ForEach(groupedItems, id: \.category) { group in
-                        LazyVStack(alignment: .leading, spacing: 1) {
+                        LazyVStack(alignment: .leading, spacing: 4) {
                             Text(group.category.displayName)
                                 .font(.headline)
                                 .foregroundColor(.secondary)
@@ -32,12 +32,49 @@ struct FoodBankView: View {
                             
                             ForEach(group.items) { item in
                                 HStack(spacing: 0) {
-                                    Text(item.name)
-                                        .font(.caption)
-                                    Spacer()
-                                    Text("\(item.calories) kcal | F: \(String(format: "%g", item.fat))g | C: \(String(format: "%g", item.carb))g | P: \(String(format: "%g", item.protein))g")
+                                    HStack(spacing: 4) {
+                                        Text(item.name)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                        
+                                        if !item.brandName.isEmpty {
+                                            Text(item.brandName)
+                                                .font(.caption2).italic()
+                                                .foregroundColor(.gray)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                        }
+                                    }
+                                    Spacer(minLength: 8)
+                                    /* 
+                                    Text("\(item.calories) cal | F: \(String(format: "%g", item.fat))g | C: \(String(format: "%g", item.carb))g | P: \(String(format: "%g", item.protein))g")
                                         .font(.caption).italic()
                                         .foregroundColor(.secondary)
+                                    */
+                                    
+                                    HStack(spacing: 7) {
+                                        Text("\(item.calories)")
+                                            .font(.caption).bold()
+                                            .monospacedDigit()
+                                            .foregroundColor(.gray)
+                                            .frame(width: 34, alignment: .trailing)
+                                        Text("\(String(format: "%g", item.fat))")
+                                            .font(.caption).bold()
+                                            .monospacedDigit()
+                                            .foregroundColor(Color(hex: "#FDE4BE"))
+                                            .frame(width: 30, alignment: .trailing)
+                                        Text("\(String(format: "%g", item.carb))")
+                                            .font(.caption).bold()
+                                            .monospacedDigit()
+                                            .foregroundColor(Color(hex: "#BEFDE4"))
+                                            .frame(width: 30, alignment: .trailing)
+                                        Text("\(String(format: "%g", item.protein))")
+                                            .font(.caption).bold()
+                                            .monospacedDigit()
+                                            .foregroundColor(Color(hex: "#E4BEFD"))
+                                            .frame(width: 30, alignment: .trailing)
+                                    }
                                     
                                     
                                     
@@ -82,7 +119,7 @@ struct FoodBankView: View {
             .sheet(item: $itemToLog) { item in
                 // Our beautifully abstracted reusable component!
                 RadialHalfSheetSelector(
-                    title: "How Much?",
+                    title: "How much \(item.name)?",
                     subtitle: "Input your served portion",
                     unit: item.servingUnit,
                     value: $adjustedServingSize,

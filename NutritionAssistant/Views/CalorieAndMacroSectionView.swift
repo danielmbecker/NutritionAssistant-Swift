@@ -173,8 +173,8 @@ struct CalorieAndMacroSectionView: View {
                             .fontWeight(.bold)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(areAllMacrosLocked ? Color.gray.opacity(0.1) : Color.blue.opacity(0.1))
-                            .foregroundColor(areAllMacrosLocked ? .gray : .blue)
+                            .background(areAllMacrosLocked ? Color.gray.opacity(0.1) : Color.accentColor.opacity(0.1))
+                            .foregroundColor(areAllMacrosLocked ? .gray : .accentColor)
                             .cornerRadius(6)
                     }
                     .disabled(areAllMacrosLocked)
@@ -223,7 +223,7 @@ struct CalorieAndMacroSectionView: View {
                 lockState.wrappedValue = lockState.wrappedValue == .percent ? .none : .percent
             }) {
                 Image(systemName: lockState.wrappedValue == .percent ? "lock.fill" : "lock.open")
-                    .foregroundColor(lockState.wrappedValue == .percent ? .blue : .gray.opacity(0.4))
+                    .foregroundColor(lockState.wrappedValue == .percent ? .accentColor : .gray.opacity(0.4))
             }
             .buttonStyle(.plain)
             SuffixTextField(value: percentBinding, suffix: "%")
@@ -232,7 +232,7 @@ struct CalorieAndMacroSectionView: View {
                 lockState.wrappedValue = lockState.wrappedValue == .grams ? .none : .grams
             }) {
                 Image(systemName: lockState.wrappedValue == .grams ? "lock.fill" : "lock.open")
-                    .foregroundColor(lockState.wrappedValue == .grams ? .blue : .gray.opacity(0.4))
+                    .foregroundColor(lockState.wrappedValue == .grams ? .accentColor : .gray.opacity(0.4))
             }
             .buttonStyle(.plain)
         }

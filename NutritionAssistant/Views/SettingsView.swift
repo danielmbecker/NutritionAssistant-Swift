@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Query private var userSettingsList: [UserSettings]
     
     @State private var viewModel = SettingsViewModel()
@@ -21,7 +22,8 @@ struct SettingsView: View {
         // NEW: This explicitly creates perfectly safe bindings for the compiler
         @Bindable var bindableViewModel = viewModel
         
-        List {
+        NavigationStack {
+            List {
             Section(
                 header: Text("Time Preferences"),
                 footer: Text("Set the time your day resets. Any food logged before this time will be grouped with the previous day.")
@@ -34,6 +36,7 @@ struct SettingsView: View {
                         Text(timeString(for: hour)).tag(hour)
                     }
                 }
+                .tint(.accentColor)
             }
             
             Section(header: Text("UI Preferences")) {
@@ -44,6 +47,7 @@ struct SettingsView: View {
                     set: { newColor in
                         if let hex = newColor.toHex() {
                             userSettingsList.first?.userSelectedPrimaryColorHex = hex
+                            try? modelContext.save()
                         }
                     }
                 ))
@@ -146,6 +150,13 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
         .onAppear {
             viewModel.initializeSettingsIfNeeded(settingsList: userSettingsList, context: modelContext)
         }
@@ -161,6 +172,7 @@ struct SettingsView: View {
             }
         } message: {
             Text("Are you sure you want to delete all saved food items? This action cannot be undone.")
+        }
         }
     }
     

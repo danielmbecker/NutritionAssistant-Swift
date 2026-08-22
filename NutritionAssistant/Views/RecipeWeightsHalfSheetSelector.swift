@@ -88,7 +88,7 @@ struct RecipeWeightsHalfSheetSelector: View {
                     
                     Button(action: { showingAddFoodSheet = true }) {
                         Label("Add Ingredient", systemImage: "plus")
-                            .foregroundColor(.blue)
+                            .foregroundColor(.accentColor)
                             .padding(.vertical, 4)
                     }
                 } header: {
@@ -132,7 +132,7 @@ struct RecipeWeightsHalfSheetSelector: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.blue)
+                        .background(Color.accentColor)
                         .cornerRadius(12)
                 }
                 .padding()

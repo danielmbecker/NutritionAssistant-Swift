@@ -17,7 +17,7 @@ struct CalorieEtcDataView: View {
             SingleFoodMetricDisplayView(
                 title: "Carbs",
                 valueText: "\(String(format: "%.0f", carbs))g",
-                color: .blue
+                color: .accentColor
             )
             
             SingleFoodMetricDisplayView(

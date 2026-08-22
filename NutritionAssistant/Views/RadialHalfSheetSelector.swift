@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct RadialHalfSheetSelector: View {
     let title: String
@@ -15,6 +16,9 @@ struct RadialHalfSheetSelector: View {
     let baseValue: Double
     let onDismiss: () -> Void
     let onSave: () -> Void
+    
+    @Query private var userSettingsList: [UserSettings]
+    private var primaryColor: Color { Color(hex: userSettingsList.first?.userSelectedPrimaryColorHex ?? "#007AFF") }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +38,7 @@ struct RadialHalfSheetSelector: View {
                 Button(action: { if value > 0.5 { value -= 0.5 } }) {
                     Image(systemName: "chevron.left.circle.fill")
                         .font(.system(size: 32))
-                        .foregroundColor(.blue)
+                        .foregroundColor(primaryColor)
                 }
                 
                 HStack(alignment: .center, spacing: 8) {
@@ -55,7 +59,7 @@ struct RadialHalfSheetSelector: View {
                 Button(action: { value += 0.5 }) {
                     Image(systemName: "chevron.right.circle.fill")
                         .font(.system(size: 32))
-                        .foregroundColor(.blue)
+                        .foregroundColor(primaryColor)
                 }
             }
             .padding(.bottom, 24)
@@ -65,10 +69,11 @@ struct RadialHalfSheetSelector: View {
                 onDismiss()
             }
             .buttonStyle(.borderedProminent)
+            .tint(primaryColor)
             .controlSize(.large)
             .padding(.bottom, 24)
             
-            ServingSizeDial(baseSize: baseValue, currentSize: $value)
+            ServingSizeDial(baseSize: baseValue, currentSize: $value, primaryColor: primaryColor)
                 .clipped()
         }
         .presentationDetents([.height(480)])
@@ -81,6 +86,7 @@ struct RadialHalfSheetSelector: View {
 struct ServingSizeDial: View {
     var baseSize: Double
     @Binding var currentSize: Double
+    var primaryColor: Color
     @State private var dragStartSize: Double? = nil
     @State private var dialAnimation: Animation = .interactiveSpring(response: 0.3, dampingFraction: 0.7)
     
@@ -137,7 +143,7 @@ struct ServingSizeDial: View {
                 .position(x: centerX, y: centerY)
                 
                 Image(systemName: "arrowtriangle.down.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(primaryColor)
                     .font(.title2)
                     .position(x: centerX, y: 15)
             }
