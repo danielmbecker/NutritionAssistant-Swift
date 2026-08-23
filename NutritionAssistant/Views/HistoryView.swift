@@ -214,9 +214,7 @@ struct HistoryView: View {
         return f.string(from: date)
     }
 
-    private var chartCardHeight: CGFloat {
-        UIScreen.main.bounds.height * 0.40
-    }
+
 
     // MARK: - Body
     var body: some View {
@@ -381,7 +379,7 @@ struct HistoryView: View {
                         .frame(width: 18)
                 }
             }
-            .frame(height: chartCardHeight)
+            .containerRelativeFrame(.vertical, count: 5, span: 2, spacing: 0)
             .padding(.horizontal, 4)
             .padding(.top, 14)
 

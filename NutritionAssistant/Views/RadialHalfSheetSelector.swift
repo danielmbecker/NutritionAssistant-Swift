@@ -16,6 +16,13 @@ struct RadialHalfSheetSelector: View {
     let baseValue: Double
     let onDismiss: () -> Void
     let onSave: () -> Void
+    var onAddExtras: (() -> Void)? = nil
+    
+    // Optional base nutrition values (at baseValue). When provided, a scaled summary is shown.
+    var baseCalories: Int? = nil
+    var baseFat: Double? = nil
+    var baseCarb: Double? = nil
+    var baseProtein: Double? = nil
     
     @Query private var userSettingsList: [UserSettings]
     private var primaryColor: Color { Color(hex: userSettingsList.first?.userSelectedPrimaryColorHex ?? "#007AFF") }
@@ -43,7 +50,7 @@ struct RadialHalfSheetSelector: View {
                 
                 HStack(alignment: .center, spacing: 8) {
                     TextField("0", value: $value, format: .number)
-                        .keyboardType(.decimalPad)
+                        .keyboardType(.decimalPad) 
                         .multilineTextAlignment(.center)
                         .font(.system(size: 32, weight: .semibold))
                         .frame(width: UIScreen.main.bounds.width / 3)
@@ -62,21 +69,58 @@ struct RadialHalfSheetSelector: View {
                         .foregroundColor(primaryColor)
                 }
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 12)
             
-            Button("Submit") {
-                onSave()
-                onDismiss()
+            // Dynamic nutrition summary — scales with the current portion value
+            if let baseCal = baseCalories {
+                let scale = baseValue > 0 ? (value / baseValue) : 1.0
+                let scaledCal = Int(round(Double(baseCal) * scale))
+                let scaledFat = (baseFat ?? 0) * scale
+                let scaledCarb = (baseCarb ?? 0) * scale
+                let scaledProtein = (baseProtein ?? 0) * scale
+                
+                Text("\(scaledCal) kcal | F: \(String(format: "%g", scaledFat))g | C: \(String(format: "%g", scaledCarb))g | P: \(String(format: "%g", scaledProtein))g")
+                    .font(.caption).italic()
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 16)
+                    .animation(.none, value: value)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(primaryColor)
-            .controlSize(.large)
-            .padding(.bottom, 24)
+            
+            if let onAddExtras {
+                // Dual-action layout for recipe logging
+                VStack(spacing: 10) {
+                    Button("Log Portion") {
+                        onSave()
+                        onDismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(primaryColor)
+                    .controlSize(.large)
+                    
+                    Button("Add Extras...") {
+                        onAddExtras()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(primaryColor)
+                    .controlSize(.large)
+                }
+                .padding(.bottom, 24)
+            } else {
+                // Single submit button — existing behavior for all other call sites
+                Button("Submit") {
+                    onSave()
+                    onDismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(primaryColor)
+                .controlSize(.large)
+                .padding(.bottom, 24)
+            }
             
             ServingSizeDial(baseSize: baseValue, currentSize: $value, primaryColor: primaryColor)
                 .clipped()
         }
-        .presentationDetents([.height(480)])
+        .presentationDetents([.height(baseCalories != nil ? 510 : 480)])
         .presentationDragIndicator(.visible)
     }
 }

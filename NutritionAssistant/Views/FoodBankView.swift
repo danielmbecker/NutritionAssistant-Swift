@@ -125,7 +125,11 @@ struct FoodBankView: View {
                     value: $adjustedServingSize,
                     baseValue: item.servingSize,
                     onDismiss: { itemToLog = nil },
-                    onSave: { logFood(item, amount: adjustedServingSize) }
+                    onSave: { logFood(item, amount: adjustedServingSize) },
+                    baseCalories: item.calories,
+                    baseFat: item.fat,
+                    baseCarb: item.carb,
+                    baseProtein: item.protein
                 )
             }
         }

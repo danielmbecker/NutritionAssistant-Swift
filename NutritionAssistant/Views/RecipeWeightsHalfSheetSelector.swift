@@ -85,7 +85,9 @@ struct RecipeWeightsHalfSheetSelector: View {
                             focusedField = ingredient.id
                         }
                     }
-                    
+                    .onDelete { offsets in
+                        editableIngredients.remove(atOffsets: offsets)
+                    }
                     Button(action: { showingAddFoodSheet = true }) {
                         Label("Add Ingredient", systemImage: "plus")
                             .foregroundColor(.accentColor)

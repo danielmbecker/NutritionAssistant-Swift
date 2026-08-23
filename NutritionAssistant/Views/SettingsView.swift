@@ -18,6 +18,11 @@ struct SettingsView: View {
     @State private var showUserSettingsImporter = false
     @State private var showDeleteAllFoodsAlert = false
     
+    // NEW: Recipe JSON Sharing state variables
+    @State private var showRecipeExporter = false
+    @State private var showRecipeImporter = false
+    @State private var recipeExportDocument: AppSharingDocument?
+    
     var body: some View {
         // NEW: This explicitly creates perfectly safe bindings for the compiler
         @Bindable var bindableViewModel = viewModel
@@ -135,6 +140,39 @@ struct SettingsView: View {
                         allowedContentTypes: [.commaSeparatedText]
                     ) { result in
                         importFoodItemsFromCSV(result: result)
+                    }
+                }
+                
+                HStack {
+                    Button("Export Saved Recipes") {
+                        exportRecipeItemsToJSON()
+                    }
+                    .buttonStyle(.bordered)
+                    .fileExporter(
+                        isPresented: $showRecipeExporter,
+                        document: recipeExportDocument,
+                        contentType: .json,
+                        defaultFilename: "NutritionAssistant_Recipes"
+                    ) { result in
+                        switch result {
+                        case .success(let url):
+                            print("Successfully exported recipes to \(url)")
+                        case .failure(let error):
+                            print("Failed to export recipes: \(error.localizedDescription)")
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Import Saved Recipes") {
+                        showRecipeImporter = true
+                    }
+                    .buttonStyle(.bordered)
+                    .fileImporter(
+                        isPresented: $showRecipeImporter,
+                        allowedContentTypes: [.json]
+                    ) { result in
+                        importRecipeItemsFromJSON(result: result)
                     }
                 }
             }
@@ -524,6 +562,81 @@ struct SettingsView: View {
                 
             } catch {
                 print("Failed to parse CSV file: \(error.localizedDescription)")
+            }
+            
+        case .failure(let error):
+            print("File selection cancelled or failed: \(error.localizedDescription)")
+        }
+    }
+    
+    // MARK: - Recipe JSON Export/Import Logic
+    
+    private func exportRecipeItemsToJSON() {
+        do {
+            let descriptor = FetchDescriptor<RecipeItem>()
+            let allRecipes = try modelContext.fetch(descriptor)
+            
+            let dtos = allRecipes.map { $0.toDTO() }
+            recipeExportDocument = AppSharingDocument(recipes: dtos)
+            showRecipeExporter = true
+            
+        } catch {
+            print("Failed to fetch recipes for export: \(error.localizedDescription)")
+        }
+    }
+    
+    private func importRecipeItemsFromJSON(result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            guard url.startAccessingSecurityScopedResource() else {
+                print("Failed to access security scoped resource.")
+                return
+            }
+            
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+            
+            do {
+                let data = try Data(contentsOf: url)
+                let decoder = JSONDecoder()
+                
+                // Decode assuming it's our root DTO format
+                // In SharingModels.swift we made `AppSharingDocumentDTO` private, so we can't use it directly here.
+                // Wait! Let's decode directly if we can, or we can use AppSharingDocument's init(configuration:) via SwiftUI standard way.
+                // Actually, the simplest way is to manually decode here since fileImporter just gives us a URL.
+                // Let's decode using JSONSerialization to extract the "recipes" array safely, or we can use a local struct.
+                struct TempDecode: Codable {
+                    var recipes: [RecipeItemDTO]?
+                }
+                
+                let decodedRoot = try decoder.decode(TempDecode.self, from: data)
+                
+                guard let incomingRecipes = decodedRoot.recipes else {
+                    print("No recipes found in the JSON file.")
+                    return
+                }
+                
+                // Existing recipes
+                let existingDescriptor = FetchDescriptor<RecipeItem>()
+                let existingRecipes = try modelContext.fetch(existingDescriptor)
+                let existingNames = Set(existingRecipes.map { $0.name.lowercased() })
+                
+                var importCount = 0
+                for dto in incomingRecipes {
+                    // Prevent duplicates by name
+                    if !existingNames.contains(dto.name.lowercased()) {
+                        let newRecipe = RecipeItem(from: dto)
+                        modelContext.insert(newRecipe)
+                        importCount += 1
+                    }
+                }
+                
+                try modelContext.save()
+                print("Successfully imported \(importCount) recipes!")
+                
+            } catch {
+                print("Failed to parse JSON file: \(error.localizedDescription)")
             }
             
         case .failure(let error):

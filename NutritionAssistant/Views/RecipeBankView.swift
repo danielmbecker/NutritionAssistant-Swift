@@ -11,6 +11,44 @@ struct RecipeBankView: View {
     @State private var customizedIngredients: [RecipeIngredient] = []
     @State private var adjustedAmount: Double = 0.0
     
+    // Extras flow state
+    @State private var recipeToAddExtras: RecipeItem?
+    @State private var portionBaseCalories: Int = 0
+    @State private var portionBaseFat: Double = 0
+    @State private var portionBaseSaturatedFat: Double = 0
+    @State private var portionBaseTransFat: Double = 0
+    @State private var portionBaseProtein: Double = 0
+    @State private var portionBaseCarb: Double = 0
+    @State private var portionBaseDietaryFiber: Double = 0
+    @State private var portionBaseAddedSugar: Double = 0
+    
+    // Batch-level totals for the current customizedIngredients — used as baseValue macros in RadialHalfSheetSelector
+    private var batchTotalCalories: Int {
+        let total = customizedIngredients.reduce(0.0) { sum, ing in
+            let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
+            return sum + (Double(ing.calories) * r)
+        }
+        return Int(round(total))
+    }
+    private var batchTotalFat: Double {
+        customizedIngredients.reduce(0.0) { sum, ing in
+            let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
+            return sum + (ing.fat * r)
+        }
+    }
+    private var batchTotalCarb: Double {
+        customizedIngredients.reduce(0.0) { sum, ing in
+            let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
+            return sum + (ing.carb * r)
+        }
+    }
+    private var batchTotalProtein: Double {
+        customizedIngredients.reduce(0.0) { sum, ing in
+            let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
+            return sum + (ing.protein * r)
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -50,8 +88,44 @@ struct RecipeBankView: View {
                         }
                         .padding(.vertical, 4)
                         .contentShape(Rectangle())
-                        .onTapGesture {
-                            recipeToEdit = recipe
+                        .contextMenu {
+                            if recipe.measurementType == .fraction {
+                                // --- Fraction recipe actions ---
+                                Button {
+                                    customizedIngredients = recipe.ingredients
+                                    adjustedAmount = 1.0
+                                    recipeToLog = recipe
+                                } label: {
+                                    Label("Log Recipe", systemImage: "fork.knife")
+                                }
+                                
+                                Button {
+                                    recipeToEdit = recipe
+                                } label: {
+                                    Label("Log Edited Recipe", systemImage: "pencil")
+                                }
+                                
+                                Button {
+                                    print("Add New Recipe Variation")
+                                } label: {
+                                    Label("Add New Recipe Variation", systemImage: "plus.rectangle.on.rectangle")
+                                }
+                            } else {
+                                // --- Weight recipe actions ---
+                                Button {
+                                    customizedIngredients = recipe.ingredients
+                                    adjustedAmount = recipe.ingredients.reduce(0) { $0 + $1.recipeWeight }
+                                    recipeToLog = recipe
+                                } label: {
+                                    Label("Log Recipe", systemImage: "fork.knife")
+                                }
+                                
+                                Button {
+                                    print("Add New Recipe Variation")
+                                } label: {
+                                    Label("Add New Recipe Variation", systemImage: "plus.rectangle.on.rectangle")
+                                }
+                            }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
@@ -64,6 +138,7 @@ struct RecipeBankView: View {
                 }
             }
             .navigationTitle("Recipes")
+            // "Log Edited Recipe" path: weights editor → portion selector
             .sheet(item: $recipeToEdit) { recipe in
                 RecipeWeightsHalfSheetSelector(
                     initialIngredients: recipe.ingredients,
@@ -77,6 +152,7 @@ struct RecipeBankView: View {
                     }
                 )
             }
+            // Shared portion selector — used by both "Log Recipe" and "Log Edited Recipe"
             .sheet(item: $recipeToLog) { recipe in
                 RadialHalfSheetSelector(
                     title: "How much \(recipe.name)?",
@@ -88,13 +164,43 @@ struct RecipeBankView: View {
                     onSave: {
                         logRecipe(recipe, customIngredients: customizedIngredients, amount: adjustedAmount)
                         recipeToLog = nil
+                    },
+                    onAddExtras: {
+                        // Compute portion-scaled base macros for display in the extras sheet
+                        computePortionBaseMacros(customIngredients: customizedIngredients, amount: adjustedAmount, recipe: recipe)
+                        recipeToLog = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            recipeToAddExtras = recipe
+                        }
+                    },
+                    baseCalories: batchTotalCalories,
+                    baseFat: batchTotalFat,
+                    baseCarb: batchTotalCarb,
+                    baseProtein: batchTotalProtein
+                )
+            }
+            // Extras sheet — optional step after portion selection
+            .sheet(item: $recipeToAddExtras) { recipe in
+                AddIngredientsHalfSheetSelector(
+                    recipeName: recipe.name,
+                    baseCalories: portionBaseCalories,
+                    baseFat: portionBaseFat,
+                    baseSaturatedFat: portionBaseSaturatedFat,
+                    baseTransFat: portionBaseTransFat,
+                    baseProtein: portionBaseProtein,
+                    baseCarb: portionBaseCarb,
+                    baseDietaryFiber: portionBaseDietaryFiber,
+                    baseAddedSugar: portionBaseAddedSugar,
+                    onSave: { extras in
+                        logRecipe(recipe, customIngredients: customizedIngredients, amount: adjustedAmount, additives: extras)
+                        recipeToAddExtras = nil
                     }
                 )
             }
         }
     }
     
-    private func logRecipe(_ recipe: RecipeItem, customIngredients: [RecipeIngredient], amount: Double) {
+    private func logRecipe(_ recipe: RecipeItem, customIngredients: [RecipeIngredient], amount: Double, additives: [RecipeIngredient] = []) {
         let baseTotalWeight: Double
         let servingUnit: String
         
@@ -109,6 +215,7 @@ struct RecipeBankView: View {
         let ratio = baseTotalWeight > 0 ? (amount / baseTotalWeight) : 1.0
         let now = Date()
         
+        // Batch ingredients — scaled by portion ratio
         var totalCalories: Double = 0
         var totalFat: Double = 0
         var totalSaturatedFat: Double = 0
@@ -130,27 +237,84 @@ struct RecipeBankView: View {
             totalAddedSugar += ingredient.addedSugar * ingredientRatio
         }
         
+        // Additives — already plate-sized, no batch scaling applied
+        var additivesCalories: Double = 0
+        var additivesFat: Double = 0
+        var additivesSaturatedFat: Double = 0
+        var additivesTransFat: Double = 0
+        var additivesProtein: Double = 0
+        var additivesCarb: Double = 0
+        var additivesDietaryFiber: Double = 0
+        var additivesAddedSugar: Double = 0
+        
+        for additive in additives {
+            let additiveRatio = additive.servingSize > 0 ? (additive.recipeWeight / additive.servingSize) : 1.0
+            additivesCalories += Double(additive.calories) * additiveRatio
+            additivesFat += additive.fat * additiveRatio
+            additivesSaturatedFat += additive.saturatedFat * additiveRatio
+            additivesTransFat += additive.transFat * additiveRatio
+            additivesProtein += additive.protein * additiveRatio
+            additivesCarb += additive.carb * additiveRatio
+            additivesDietaryFiber += additive.dietaryFiber * additiveRatio
+            additivesAddedSugar += additive.addedSugar * additiveRatio
+        }
+        
         let loggedItem = ConsumedItem(
             timestamp: now,
             logicalDate: now.logicalDay(startHour: dayStartHour),
             name: recipe.name,
             servingSize: amount,
             servingUnit: servingUnit,
-            calories: Int(round(totalCalories * ratio)),
-            fat: totalFat * ratio,
-            saturatedFat: totalSaturatedFat * ratio,
-            transFat: totalTransFat * ratio,
-            protein: totalProtein * ratio,
-            carb: totalCarb * ratio,
-            dietaryFiber: totalDietaryFiber * ratio,
-            addedSugar: totalAddedSugar * ratio,
+            calories: Int(round(totalCalories * ratio + additivesCalories)),
+            fat: totalFat * ratio + additivesFat,
+            saturatedFat: totalSaturatedFat * ratio + additivesSaturatedFat,
+            transFat: totalTransFat * ratio + additivesTransFat,
+            protein: totalProtein * ratio + additivesProtein,
+            carb: totalCarb * ratio + additivesCarb,
+            dietaryFiber: totalDietaryFiber * ratio + additivesDietaryFiber,
+            addedSugar: totalAddedSugar * ratio + additivesAddedSugar,
             category: .preparedFoods,
             isRecipe: true,
             recipeCategory: recipe.category,
-            recipeIngredients: customIngredients
+            recipeIngredients: customIngredients,
+            recipeAdditives: additives.isEmpty ? nil : additives
         )
         
         modelContext.insert(loggedItem)
+    }
+    
+    private func computePortionBaseMacros(customIngredients: [RecipeIngredient], amount: Double, recipe: RecipeItem) {
+        let baseTotalWeight: Double
+        if recipe.measurementType == .fraction {
+            baseTotalWeight = 1.0
+        } else {
+            baseTotalWeight = customIngredients.reduce(0) { $0 + $1.recipeWeight }
+        }
+        let ratio = baseTotalWeight > 0 ? (amount / baseTotalWeight) : 1.0
+        
+        var cal: Double = 0, fat: Double = 0, satFat: Double = 0, transFat: Double = 0
+        var protein: Double = 0, carb: Double = 0, fiber: Double = 0, sugar: Double = 0
+        
+        for ingredient in customIngredients {
+            let ir = ingredient.servingSize > 0 ? (ingredient.recipeWeight / ingredient.servingSize) : 1.0
+            cal += Double(ingredient.calories) * ir
+            fat += ingredient.fat * ir
+            satFat += ingredient.saturatedFat * ir
+            transFat += ingredient.transFat * ir
+            protein += ingredient.protein * ir
+            carb += ingredient.carb * ir
+            fiber += ingredient.dietaryFiber * ir
+            sugar += ingredient.addedSugar * ir
+        }
+        
+        portionBaseCalories = Int(round(cal * ratio))
+        portionBaseFat = fat * ratio
+        portionBaseSaturatedFat = satFat * ratio
+        portionBaseTransFat = transFat * ratio
+        portionBaseProtein = protein * ratio
+        portionBaseCarb = carb * ratio
+        portionBaseDietaryFiber = fiber * ratio
+        portionBaseAddedSugar = sugar * ratio
     }
     
     private func delete(_ recipe: RecipeItem) {

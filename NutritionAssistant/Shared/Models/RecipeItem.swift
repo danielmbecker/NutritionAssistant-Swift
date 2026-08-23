@@ -23,7 +23,7 @@ enum RecipeCategory: String, Codable, CaseIterable {
     case vegetarian = "Vegetarian"
 }
 
-struct RecipeIngredient: Codable, Identifiable {
+struct RecipeIngredient: Codable, Identifiable, Sendable {
     var id: UUID = UUID()
     var foodItemID: UUID
     
@@ -68,17 +68,13 @@ final class RecipeItem {
     var name: String
     var type: String
     var measurementType: RecipeMeasurementType
-    var cooked: Bool
-    var addedUntrackedWeight: Bool
     var ingredients: [RecipeIngredient]
     var category: RecipeCategory
     
-    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, cooked: Bool = false, addedUntrackedWeight: Bool = false, ingredients: [RecipeIngredient] = [], category: RecipeCategory = .entrees) {
+    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], category: RecipeCategory = .entrees) {
         self.name = name
         self.type = type
         self.measurementType = measurementType
-        self.cooked = cooked
-        self.addedUntrackedWeight = addedUntrackedWeight
         self.ingredients = ingredients
         self.category = category
     }
@@ -116,5 +112,30 @@ extension RecipeItem {
     
     var totalBatchWeight: Double {
         ingredients.reduce(0.0) { $0 + $1.recipeWeight }
+    }
+}
+
+// MARK: - DTO Conversion
+extension RecipeItem {
+    func toDTO() -> RecipeItemDTO {
+        return RecipeItemDTO(
+            id: self.id,
+            name: self.name,
+            type: self.type,
+            measurementType: self.measurementType,
+            ingredients: self.ingredients,
+            category: self.category
+        )
+    }
+    
+    convenience init(from dto: RecipeItemDTO) {
+        self.init(
+            name: dto.name,
+            type: dto.type,
+            measurementType: dto.measurementType,
+            ingredients: dto.ingredients,
+            category: dto.category
+        )
+        self.id = dto.id
     }
 }

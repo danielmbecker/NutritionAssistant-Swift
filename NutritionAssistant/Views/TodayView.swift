@@ -234,13 +234,29 @@ struct TodayView: View {
                 NavigationStack {
                     List {
                         if let ingredients = item.recipeIngredients, !ingredients.isEmpty {
-                            ForEach(ingredients) { ingredient in
-                                HStack {
-                                    Text(ingredient.name)
-                                        .fontWeight(.medium)
-                                    Spacer()
-                                    Text("\(String(format: "%.1f", ingredient.recipeWeight)) \(ingredient.servingUnit)")
-                                        .foregroundColor(.secondary)
+                            Section(header: Text("Ingredients")) {
+                                ForEach(ingredients) { ingredient in
+                                    HStack {
+                                        Text(ingredient.name)
+                                            .fontWeight(.medium)
+                                        Spacer()
+                                        Text("\(String(format: "%.1f", ingredient.recipeWeight)) \(ingredient.servingUnit)")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            
+                            if let additives = item.recipeAdditives, !additives.isEmpty {
+                                Section(header: Text("Extras")) {
+                                    ForEach(additives) { additive in
+                                        HStack {
+                                            Text(additive.name)
+                                                .fontWeight(.medium)
+                                            Spacer()
+                                            Text("\(String(format: "%.1f", additive.recipeWeight)) \(additive.servingUnit)")
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
                                 }
                             }
                         } else {

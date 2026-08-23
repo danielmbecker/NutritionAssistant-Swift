@@ -10,9 +10,7 @@ struct AddRecipieView: View {
     private func checkDirty() {
         isDirty = !recipe.name.isEmpty || 
                   !recipe.ingredients.isEmpty || 
-                  recipe.measurementType != .weight || 
-                  recipe.cooked != false || 
-                  recipe.addedUntrackedWeight != false
+                  recipe.measurementType != .weight
     }
     
     var body: some View {
@@ -50,65 +48,7 @@ struct AddRecipieView: View {
                     }
                     .padding(.vertical, 4)
                     
-                    // 2. Cooked?
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Are you cooking this recipe?")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 12) {
-                            Button(action: { recipe.cooked = true }) {
-                                Text("Yes")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(recipe.cooked ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(recipe.cooked ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: { recipe.cooked = false }) {
-                                Text("No")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(!recipe.cooked ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(!recipe.cooked ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    
-                    // 3. Untracked Ingredients
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Are you adding any untracked ingredients? (water, etc)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 12) {
-                            Button(action: { recipe.addedUntrackedWeight = true }) {
-                                Text("Yes")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(recipe.addedUntrackedWeight ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(recipe.addedUntrackedWeight ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: { recipe.addedUntrackedWeight = false }) {
-                                Text("No")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(!recipe.addedUntrackedWeight ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(!recipe.addedUntrackedWeight ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
+
                     
                     // 4. Recipe Name
                     VStack(alignment: .leading, spacing: 8) {
@@ -209,11 +149,9 @@ struct AddRecipieView: View {
                 }
             }
             .navigationTitle("Add Recipe")
-            .onChange(of: recipe.name) { _ in checkDirty() }
-            .onChange(of: recipe.measurementType) { _ in checkDirty() }
-            .onChange(of: recipe.cooked) { _ in checkDirty() }
-            .onChange(of: recipe.addedUntrackedWeight) { _ in checkDirty() }
-            .onChange(of: recipe.ingredients.count) { _ in checkDirty() }
+            .onChange(of: recipe.name) { checkDirty() }
+            .onChange(of: recipe.measurementType) { checkDirty() }
+            .onChange(of: recipe.ingredients.count) { checkDirty() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {

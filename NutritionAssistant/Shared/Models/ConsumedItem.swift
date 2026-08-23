@@ -22,8 +22,9 @@ final class ConsumedItem {
     var isRecipe: Bool
     var recipeCategory: RecipeCategory?
     var recipeIngredients: [RecipeIngredient]?
+    var recipeAdditives: [RecipeIngredient]?
     
-    init(timestamp: Date, logicalDate: Date, name: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: FoodCategory = .preparedFoods, isRecipe: Bool = false, recipeCategory: RecipeCategory? = nil, recipeIngredients: [RecipeIngredient]? = nil) {
+    init(timestamp: Date, logicalDate: Date, name: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: FoodCategory = .preparedFoods, isRecipe: Bool = false, recipeCategory: RecipeCategory? = nil, recipeIngredients: [RecipeIngredient]? = nil, recipeAdditives: [RecipeIngredient]? = nil) {
         self.timestamp = timestamp
         self.logicalDate = logicalDate
         self.name = name
@@ -41,6 +42,7 @@ final class ConsumedItem {
         self.isRecipe = isRecipe
         self.recipeCategory = recipeCategory
         self.recipeIngredients = recipeIngredients
+        self.recipeAdditives = recipeAdditives
     }
 }
 
