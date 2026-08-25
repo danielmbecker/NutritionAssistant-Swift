@@ -6,6 +6,8 @@ struct AddRecipieView: View {
     @Binding var isDirty: Bool
     @State private var recipe = RecipeItem(name: "", type: "Recipe")
     @State private var showingAddFoodSheet = false
+    @State private var displayServingAsFraction = false
+    @State private var hasSelectedMeasurementStyle = false
     
     private func checkDirty() {
         isDirty = !recipe.name.isEmpty || 
@@ -16,57 +18,22 @@ struct AddRecipieView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(header: Text("Recipe Details")) {
-                    
-                    // 1. Measurement Type
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("How do you want to measure servings of this recipe?")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack {
-                            Button(action: { recipe.measurementType = .fraction }) {
-                                Text("Fractional (1 Whole, 1/2, 1/4, etc)")
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 12)
-                                    .background(recipe.measurementType == .fraction ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(recipe.measurementType == .fraction ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: { recipe.measurementType = .weight }) {
-                                Text("Weight (grams, ounces)")
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 12)
-                                    .background(recipe.measurementType == .weight ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(recipe.measurementType == .weight ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    
-
+                Section() {
                     
                     // 4. Recipe Name
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Recipe Name")
-                            .font(.headline)
+                       
+                            
                         
                         HStack {
+                            Text("Recipe Name")
                             TextField("Enter recipe name...", text: $recipe.name)
                                 .textFieldStyle(.roundedBorder)
                         }
                     }
-                    .padding(.vertical, 4)
                     
                     // 4.5. Recipe Category
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Category")
-                            .font(.headline)
-                        
                         Picker("Select Category", selection: $recipe.category) {
                             ForEach(RecipeCategory.allCases, id: \.self) { cat in
                                 Text(cat.rawValue).tag(cat)
@@ -74,11 +41,103 @@ struct AddRecipieView: View {
                         }
                         .pickerStyle(.menu)
                     }
-                    .padding(.vertical, 4)
-                }
+                     
+                    HStack {
+                        HStack(spacing: 4) {
+                            if !hasSelectedMeasurementStyle {
+                                Text("How is this recipe measured?")
+                                    .contentTransition(.interpolate)
+                            } else {
+                                Text("How Many")
+                                Text(recipe.measurementType == .weight ? "grams per Serving" : "Servings per Recipe")
+                                    .contentTransition(.interpolate)
+                                    .animation(.spring(duration: 2.0, bounce: 0.3), value: recipe.measurementType)
+                            }
+                        }
+                        .font(.subheadline)
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 0) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    hasSelectedMeasurementStyle = true
+                                    recipe.measurementType = .weight
+                                }
+                            }) {
+                                Image(systemName: "scalemass")
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(hasSelectedMeasurementStyle && recipe.measurementType == .weight ? Color.accentColor : Color.gray.opacity(0.2))
+                                    .foregroundColor(hasSelectedMeasurementStyle && recipe.measurementType == .weight ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    hasSelectedMeasurementStyle = true
+                                    recipe.measurementType = .fraction
+                                }
+                            }) {
+                                Image(systemName: "chart.pie")
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(hasSelectedMeasurementStyle && recipe.measurementType == .fraction ? Color.accentColor : Color.gray.opacity(0.2))
+                                    .foregroundColor(hasSelectedMeasurementStyle && recipe.measurementType == .fraction ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .cornerRadius(6)
+                    }
+                    if hasSelectedMeasurementStyle && recipe.measurementType == .fraction {
+                        FractionSelectionView()
+                            .padding(.top, 4)
+                    }
+                    
+                    
+                    
+
+                    
+                    
+                    
+
+                    
+                    
+                    HStack {
+                        Text("Serving Size")
+                        
+                        HStack(spacing: 0) {
+                            Button(action: { displayServingAsFraction = false }) {
+                                Text("100g")
+                                    .font(.caption)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(!displayServingAsFraction ? Color.accentColor : Color.gray.opacity(0.2))
+                                    .foregroundColor(!displayServingAsFraction ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button(action: { displayServingAsFraction = true }) {
+                                Text("1/4")
+                                    .font(.caption)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(displayServingAsFraction ? Color.accentColor : Color.gray.opacity(0.2))
+                                    .foregroundColor(displayServingAsFraction ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .cornerRadius(6)
+                        .padding(.leading, 8)
+                        
+                        Text(displayServingAsFraction ? "1 Serving" : "\(recipe.totalBatchWeight, specifier: "%.1f") g")
+                            .foregroundColor(.secondary)
+
+
+                    }
                 
-                // 5. Ingredients Section
-                Section {
+                
+             
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Ingredients")
@@ -114,7 +173,7 @@ struct AddRecipieView: View {
                                         Text("\(item.calories) kcal")
                                             .foregroundColor(.secondary)
                                     }
-                                    
+                                      
                                     Text("F: \(item.fat, specifier: "%.0f")g | P: \(item.protein, specifier: "%.0f")g | C: \(item.carb, specifier: "%.0f")g")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
