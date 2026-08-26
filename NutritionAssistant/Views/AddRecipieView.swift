@@ -3,11 +3,30 @@ import SwiftData
 
 struct AddRecipieView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Binding var isDirty: Bool
     @State private var recipe = RecipeItem(name: "", type: "Recipe")
     @State private var showingAddFoodSheet = false
     @State private var displayServingAsFraction = false
-    @State private var hasSelectedMeasurementStyle = false
+    @State private var hasSelectedMeasurement = false
+    @State private var userEnteredServing: Double? = nil
+    @State private var recipeWeightStatic = true
+    
+    var existingRecipe: RecipeItem?
+    
+    @Query private var customCategories: [UserRecipeCategory]
+    @State private var showingAddCategoryAlert = false
+    @State private var newCategoryName = ""
+    
+    init(isDirty: Binding<Bool>, existingRecipe: RecipeItem? = nil) {
+        self._isDirty = isDirty
+        self.existingRecipe = existingRecipe
+        if let existing = existingRecipe {
+            self._recipe = State(initialValue: existing)
+            self._hasSelectedMeasurement = State(initialValue: true)
+            self._recipeWeightStatic = State(initialValue: existing.customBatchWeight == nil)
+        }
+    }
     
     private func checkDirty() {
         isDirty = !recipe.name.isEmpty || 
@@ -33,18 +52,51 @@ struct AddRecipieView: View {
                     }
                     
                     // 4.5. Recipe Category
-                    VStack(alignment: .leading, spacing: 8) {
-                        Picker("Select Category", selection: $recipe.category) {
-                            ForEach(RecipeCategory.allCases, id: \.self) { cat in
-                                Text(cat.rawValue).tag(cat)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Category")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                let allCategories = RecipeCategory.defaultCategories + customCategories.map { $0.name }
+                                
+                                ForEach(allCategories, id: \.self) { cat in
+                                    Button(action: {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            recipe.category = cat
+                                        }
+                                    }) {
+                                        Text(cat)
+                                            .font(.subheadline)
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 8)
+                                            .background(recipe.category == cat ? Color.accentColor : Color.gray.opacity(0.15))
+                                            .foregroundColor(recipe.category == cat ? .white : .primary)
+                                            .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                
+                                Button(action: {
+                                    showingAddCategoryAlert = true
+                                }) {
+                                    Image(systemName: "plus")
+                                        .font(.subheadline.weight(.semibold))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(Color.gray.opacity(0.15))
+                                        .foregroundColor(.primary)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .pickerStyle(.menu)
                     }
                      
                     HStack {
                         HStack(spacing: 4) {
-                            if !hasSelectedMeasurementStyle {
+                            if !hasSelectedMeasurement {
                                 Text("How is this recipe measured?")
                                     .contentTransition(.interpolate)
                             } else {
@@ -61,81 +113,116 @@ struct AddRecipieView: View {
                         HStack(spacing: 0) {
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.5)) {
-                                    hasSelectedMeasurementStyle = true
+                                    hasSelectedMeasurement = true
                                     recipe.measurementType = .weight
                                 }
                             }) {
                                 Image(systemName: "scalemass")
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
-                                    .background(hasSelectedMeasurementStyle && recipe.measurementType == .weight ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(hasSelectedMeasurementStyle && recipe.measurementType == .weight ? .white : .primary)
+                                    .background(hasSelectedMeasurement && recipe.measurementType == .weight ? Color.accentColor : Color.gray.opacity(0.2))
+                                    .foregroundColor(hasSelectedMeasurement && recipe.measurementType == .weight ? .white : .primary)
                             }
                             .buttonStyle(.plain)
                             
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.3)) {
-                                    hasSelectedMeasurementStyle = true
+                                    hasSelectedMeasurement = true
                                     recipe.measurementType = .fraction
                                 }
                             }) {
                                 Image(systemName: "chart.pie")
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
-                                    .background(hasSelectedMeasurementStyle && recipe.measurementType == .fraction ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(hasSelectedMeasurementStyle && recipe.measurementType == .fraction ? .white : .primary)
+                                    .background(hasSelectedMeasurement && recipe.measurementType == .fraction ? Color.accentColor : Color.gray.opacity(0.2))
+                                    .foregroundColor(hasSelectedMeasurement && recipe.measurementType == .fraction ? .white : .primary)
                             }
                             .buttonStyle(.plain)
                         }
                         .cornerRadius(6)
                     }
-                    if hasSelectedMeasurementStyle && recipe.measurementType == .fraction {
-                        FractionSelectionView()
-                            .padding(.top, 4)
-                    }
-                    
-                    
-                    
-
-                    
-                    
-                    
-
-                    
-                    
-                    HStack {
-                        Text("Serving Size")
+                    if hasSelectedMeasurement {
+                        if recipe.measurementType == .fraction {
+                            FractionSelectionView()
+                                .padding(.top, 4)
+                        }
                         
-                        HStack(spacing: 0) {
-                            Button(action: { displayServingAsFraction = false }) {
-                                Text("100g")
-                                    .font(.caption)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(!displayServingAsFraction ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(!displayServingAsFraction ? .white : .primary)
+                        if recipe.measurementType == .weight {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Total Weight")
+                                Spacer()
+                                HStack(spacing: 0) {
+                                    Button(action: { withAnimation { recipeWeightStatic = false } }) {
+                                        Text("Changes")
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(!recipeWeightStatic ? Color.accentColor : Color.gray.opacity(0.2))
+                                            .foregroundColor(!recipeWeightStatic ? .white : .primary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Button(action: { 
+                                        withAnimation { 
+                                            recipeWeightStatic = true 
+                                            recipe.customBatchWeight = nil
+                                        } 
+                                    }) {
+                                        Text("Doesn't Change")
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(recipeWeightStatic ? Color.accentColor : Color.gray.opacity(0.2))
+                                            .foregroundColor(recipeWeightStatic ? .white : .primary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .cornerRadius(6)
                             }
-                            .buttonStyle(.plain)
                             
-                            Button(action: { displayServingAsFraction = true }) {
-                                Text("1/4")
-                                    .font(.caption)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(displayServingAsFraction ? Color.accentColor : Color.gray.opacity(0.2))
-                                    .foregroundColor(displayServingAsFraction ? .white : .primary)
+                            HStack {
+                                Text(recipeWeightStatic ? "Total Ingredients Weight" : "Custom Total Weight")
+                                Spacer()
+                                if recipeWeightStatic {
+                                    Text("\(recipe.totalBatchWeight, specifier: "%.1f")g")
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        TextField("0", value: $recipe.customBatchWeight, format: .number)
+                                            .keyboardType(.decimalPad)
+                                            .multilineTextAlignment(.trailing)
+                                            .frame(width: 80)
+                                            .padding(4)
+                                            .background(Color.gray.opacity(0.1))
+                                            .cornerRadius(6)
+                                        Text("g")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
                             }
-                            .buttonStyle(.plain)
+                            
+                            if !recipeWeightStatic {
+                                Toggle(isOn: $recipe.finalWeightPostponed) {
+                                    Text("Set final weight later")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            HStack {
+                                Text("Serving Size")
+                                Spacer()
+                                TextField("0", value: $userEnteredServing, format: .number)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 80)
+                                    .padding(4)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(6)
+                            }
                         }
-                        .cornerRadius(6)
-                        .padding(.leading, 8)
-                        
-                        Text(displayServingAsFraction ? "1 Serving" : "\(recipe.totalBatchWeight, specifier: "%.1f") g")
-                            .foregroundColor(.secondary)
-
-
                     }
-                
+                }
                 
              
                     VStack(alignment: .leading, spacing: 12) {
@@ -207,11 +294,16 @@ struct AddRecipieView: View {
                     .padding(.vertical, 8)
                 }
             }
-            .navigationTitle("Add Recipe")
+            .navigationTitle(existingRecipe == nil ? "Add Recipe" : "Edit Recipe")
             .onChange(of: recipe.name) { checkDirty() }
             .onChange(of: recipe.measurementType) { checkDirty() }
             .onChange(of: recipe.ingredients.count) { checkDirty() }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if existingRecipe != nil {
+                        Button("Cancel") { dismiss() }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveRecipe()
@@ -219,14 +311,35 @@ struct AddRecipieView: View {
                     .disabled(recipe.name.isEmpty || recipe.ingredients.isEmpty)
                 }
             }
+            .alert("New Category", isPresented: $showingAddCategoryAlert) {
+                TextField("Category Name", text: $newCategoryName)
+                Button("Cancel", role: .cancel) { newCategoryName = "" }
+                Button("Save") {
+                    let newCat = UserRecipeCategory(name: newCategoryName)
+                    modelContext.insert(newCat)
+                    recipe.category = newCategoryName
+                    newCategoryName = ""
+                }
+                .disabled(newCategoryName.isEmpty)
+            } message: {
+                Text("Enter a name for the new custom category.")
+            }
         }
     }
     
     private func saveRecipe() {
-        modelContext.insert(recipe)
-        // Reset form for next recipe
-        recipe = RecipeItem(name: "", type: "Recipe")
-        isDirty = false
+        if existingRecipe == nil {
+            modelContext.insert(recipe)
+        }
+        
+        if existingRecipe != nil {
+            dismiss()
+        } else {
+            // Reset form for next recipe
+            recipe = RecipeItem(name: "", type: "Recipe")
+            isDirty = false
+            hasSelectedMeasurement = false
+        }
     }
 }
 

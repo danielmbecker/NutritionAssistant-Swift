@@ -11,6 +11,9 @@ struct RecipeBankView: View {
     @State private var customizedIngredients: [RecipeIngredient] = []
     @State private var adjustedAmount: Double = 0.0
     
+    @State private var recipeToFullEdit: RecipeItem?
+    @State private var recipeNeedingWeight: RecipeItem?
+    @State private var showingWeightAlert = false
     // Extras flow state
     @State private var recipeToAddExtras: RecipeItem?
     @State private var portionBaseCalories: Int = 0
@@ -61,8 +64,20 @@ struct RecipeBankView: View {
                 } else {
                     ForEach(recipes) { recipe in
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(recipe.name)
-                                .font(.headline)
+                            HStack {
+                                Text(recipe.name)
+                                    .font(.headline)
+                                Spacer()
+                                if recipe.finalWeightPostponed {
+                                    Circle()
+                                        .fill(Color.yellow)
+                                        .frame(width: 10, height: 10)
+                                        .onTapGesture {
+                                            recipeNeedingWeight = recipe
+                                            showingWeightAlert = true
+                                        }
+                                }
+                            }
                             
                             HStack {
                                 Text("\(recipe.ingredients.count) ingredients")
@@ -125,6 +140,14 @@ struct RecipeBankView: View {
                                 } label: {
                                     Label("Add New Recipe Variation", systemImage: "plus.rectangle.on.rectangle")
                                 }
+                            }
+                            
+                            Divider()
+                            
+                            Button {
+                                recipeToFullEdit = recipe
+                            } label: {
+                                Label("Edit This Recipe", systemImage: "square.and.pencil")
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -196,6 +219,28 @@ struct RecipeBankView: View {
                         recipeToAddExtras = nil
                     }
                 )
+            }
+            .confirmationDialog("Final weight not yet entered", isPresented: $showingWeightAlert, titleVisibility: .visible) {
+                Button("Enter final weight now") {
+                    if let r = recipeNeedingWeight {
+                        r.measurementType = .weight
+                        r.finalWeightPostponed = false
+                        recipeToFullEdit = r
+                    }
+                }
+                Button("Switch to Fractional Recipe") {
+                    if let r = recipeNeedingWeight {
+                        r.measurementType = .fraction
+                        r.finalWeightPostponed = false
+                        recipeToFullEdit = r
+                    }
+                }
+                Button("Cancel", role: .cancel) {
+                    recipeNeedingWeight = nil
+                }
+            }
+            .sheet(item: $recipeToFullEdit) { r in
+                AddRecipieView(isDirty: .constant(false), existingRecipe: r)
             }
         }
     }

@@ -114,15 +114,15 @@ struct FractionSelectionView: View {
             }
             
         } // Closes HStack(spacing: 20)
-        
-        HStack {
-            Text("Multiplier equivalent:")
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(String(format: "%.1f%%", percentageValue))
-                .fontWeight(.semibold)
-        }
-        
+//        
+//        HStack {
+//            Text("Multiplier equivalent:")
+//                .foregroundColor(.secondary)
+//            Spacer()
+//            Text(String(format: "%.1f%%", percentageValue))
+//                .fontWeight(.semibold)
+//        }
+//        
         } // Closes VStack
         .padding()
     }

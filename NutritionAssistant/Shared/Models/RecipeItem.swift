@@ -6,21 +6,23 @@ enum RecipeMeasurementType: String, Codable {
     case weight = "Weight"
 }
 
-enum RecipeCategory: String, Codable, CaseIterable {
-    case soupsAndSalads = "Soups & Salads"
-    case vegetables = "Vegetables"
-    case entrees = "Entrees"
-    case seafood = "Seafood"
-    case meat = "Meat"
-    case sauces = "Sauces"
-    case breakfast = "Breakfast"
-    case desserts = "Desserts"
-    case eggs = "Eggs"
-    case appetizers = "Appetizers"
-    case beverages = "Beverages"
-    case breadAndPasta = "Bread & Pasta"
-    case snack = "Snack"
-    case vegetarian = "Vegetarian"
+struct RecipeCategory {
+    static let defaultCategories = [
+        "Soups & Salads",
+        "Vegetables",
+        "Entrees",
+        "Seafood",
+        "Meat",
+        "Sauces",
+        "Breakfast",
+        "Desserts",
+        "Eggs",
+        "Appetizers",
+        "Beverages",
+        "Bread & Pasta",
+        "Snack",
+        "Vegetarian"
+    ]
 }
 
 struct RecipeIngredient: Codable, Identifiable, Sendable {
@@ -69,14 +71,18 @@ final class RecipeItem {
     var type: String
     var measurementType: RecipeMeasurementType
     var ingredients: [RecipeIngredient]
-    var category: RecipeCategory
+    var category: String
+    var customBatchWeight: Double?
+    var finalWeightPostponed: Bool
     
-    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], category: RecipeCategory = .entrees) {
+    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], category: String = "Entrees", customBatchWeight: Double? = nil, finalWeightPostponed: Bool = false) {
         self.name = name
         self.type = type
         self.measurementType = measurementType
         self.ingredients = ingredients
         self.category = category
+        self.customBatchWeight = customBatchWeight
+        self.finalWeightPostponed = finalWeightPostponed
     }
 }
 
@@ -111,7 +117,10 @@ extension RecipeItem {
     }
     
     var totalBatchWeight: Double {
-        ingredients.reduce(0.0) { $0 + $1.recipeWeight }
+        if let custom = customBatchWeight {
+            return custom
+        }
+        return ingredients.reduce(0.0) { $0 + $1.recipeWeight }
     }
 }
 
@@ -124,7 +133,9 @@ extension RecipeItem {
             type: self.type,
             measurementType: self.measurementType,
             ingredients: self.ingredients,
-            category: self.category
+            category: self.category,
+            customBatchWeight: self.customBatchWeight,
+            finalWeightPostponed: self.finalWeightPostponed
         )
     }
     
@@ -134,7 +145,9 @@ extension RecipeItem {
             type: dto.type,
             measurementType: dto.measurementType,
             ingredients: dto.ingredients,
-            category: dto.category
+            category: dto.category,
+            customBatchWeight: dto.customBatchWeight,
+            finalWeightPostponed: dto.finalWeightPostponed ?? false
         )
         self.id = dto.id
     }
