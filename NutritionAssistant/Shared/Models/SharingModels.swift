@@ -13,6 +13,7 @@ struct RecipeItemDTO: Codable, Identifiable, Sendable {
     var category: String
     var customBatchWeight: Double?
     var finalWeightPostponed: Bool?
+    var servingSize: Double?
 }
 
 /// A Codable container representing the full exported JSON file structure

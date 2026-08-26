@@ -74,8 +74,9 @@ final class RecipeItem {
     var category: String
     var customBatchWeight: Double?
     var finalWeightPostponed: Bool
+    var servingSize: Double?
     
-    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], category: String = "Entrees", customBatchWeight: Double? = nil, finalWeightPostponed: Bool = false) {
+    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], category: String = "Entrees", customBatchWeight: Double? = nil, finalWeightPostponed: Bool = false, servingSize: Double? = nil) {
         self.name = name
         self.type = type
         self.measurementType = measurementType
@@ -83,6 +84,7 @@ final class RecipeItem {
         self.category = category
         self.customBatchWeight = customBatchWeight
         self.finalWeightPostponed = finalWeightPostponed
+        self.servingSize = servingSize
     }
 }
 
@@ -122,6 +124,38 @@ extension RecipeItem {
         }
         return ingredients.reduce(0.0) { $0 + $1.recipeWeight }
     }
+    
+    var servingRatio: Double {
+        guard let serving = servingSize, serving > 0 else { return 1.0 }
+        
+        if measurementType == .weight {
+            let tbw = totalBatchWeight
+            return tbw > 0 ? (serving / tbw) : 1.0
+        } else {
+            // Fraction recipe
+            if serving < 1.0 {
+                return serving // e.g. 0.25 (1/4 of the recipe)
+            } else {
+                return 1.0 / serving // e.g. 3.0 circles means the recipe makes 3 portions, so 1 portion is 1/3 of the recipe
+            }
+        }
+    }
+    
+    var servingCalories: Int {
+        return Int(round(Double(totalCalories) * servingRatio))
+    }
+    
+    var servingFat: Double {
+        return totalFat * servingRatio
+    }
+    
+    var servingCarb: Double {
+        return totalCarb * servingRatio
+    }
+    
+    var servingProtein: Double {
+        return totalProtein * servingRatio
+    }
 }
 
 // MARK: - DTO Conversion
@@ -135,7 +169,8 @@ extension RecipeItem {
             ingredients: self.ingredients,
             category: self.category,
             customBatchWeight: self.customBatchWeight,
-            finalWeightPostponed: self.finalWeightPostponed
+            finalWeightPostponed: self.finalWeightPostponed,
+            servingSize: self.servingSize
         )
     }
     
@@ -147,7 +182,8 @@ extension RecipeItem {
             ingredients: dto.ingredients,
             category: dto.category,
             customBatchWeight: dto.customBatchWeight,
-            finalWeightPostponed: dto.finalWeightPostponed ?? false
+            finalWeightPostponed: dto.finalWeightPostponed ?? false,
+            servingSize: dto.servingSize
         )
         self.id = dto.id
     }

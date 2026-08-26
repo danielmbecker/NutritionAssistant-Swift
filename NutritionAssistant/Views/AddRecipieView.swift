@@ -9,7 +9,7 @@ struct AddRecipieView: View {
     @State private var showingAddFoodSheet = false
     @State private var displayServingAsFraction = false
     @State private var hasSelectedMeasurement = false
-    @State private var userEnteredServing: Double? = nil
+    @State private var fractionSections: Int = -4
     @State private var recipeWeightStatic = true
     
     var existingRecipe: RecipeItem?
@@ -25,6 +25,13 @@ struct AddRecipieView: View {
             self._recipe = State(initialValue: existing)
             self._hasSelectedMeasurement = State(initialValue: true)
             self._recipeWeightStatic = State(initialValue: existing.customBatchWeight == nil)
+            if let serving = existing.servingSize {
+                if serving > 0 && serving < 1.0 {
+                    self._fractionSections = State(initialValue: -Int(round(1.0 / serving)))
+                } else if serving >= 1.0 {
+                    self._fractionSections = State(initialValue: Int(round(serving)))
+                }
+            }
         }
     }
     
@@ -143,7 +150,7 @@ struct AddRecipieView: View {
                     }
                     if hasSelectedMeasurement {
                         if recipe.measurementType == .fraction {
-                            FractionSelectionView()
+                            FractionSelectionView(sections: $fractionSections)
                                 .padding(.top, 4)
                         }
                         
@@ -212,7 +219,7 @@ struct AddRecipieView: View {
                             HStack {
                                 Text("Serving Size")
                                 Spacer()
-                                TextField("0", value: $userEnteredServing, format: .number)
+                                TextField("0", value: $recipe.servingSize, format: .number)
                                     .keyboardType(.decimalPad)
                                     .multilineTextAlignment(.trailing)
                                     .frame(width: 80)
@@ -328,6 +335,10 @@ struct AddRecipieView: View {
     }
     
     private func saveRecipe() {
+        if recipe.measurementType == .fraction {
+            recipe.servingSize = fractionSections < 0 ? (1.0 / Double(abs(fractionSections))) : Double(fractionSections)
+        }
+        
         if existingRecipe == nil {
             modelContext.insert(recipe)
         }

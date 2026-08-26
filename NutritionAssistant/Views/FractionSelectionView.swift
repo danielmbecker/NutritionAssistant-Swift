@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct FractionSelectionView: View {
-    @State private var sections: Int = -4 // Negative = fractions, Positive = whole circles
+    @Binding var sections: Int
     
     private var gridConfig: (columns: [GridItem], size: CGFloat) {
         let cols: Int
@@ -129,5 +129,5 @@ struct FractionSelectionView: View {
 }
 
 #Preview {
-    FractionSelectionView()
+    FractionSelectionView(sections: .constant(-4))
 }

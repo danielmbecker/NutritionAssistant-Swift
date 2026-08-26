@@ -136,7 +136,7 @@ struct TodayView: View {
                                     Spacer()
                                     
                                     VStack(alignment: .trailing) {
-                                        Text("\(item.calories)")
+                                        Text("\(item.calories) calories")
                                             .font(.subheadline)
                                             .fontWeight(.semibold)
                                         

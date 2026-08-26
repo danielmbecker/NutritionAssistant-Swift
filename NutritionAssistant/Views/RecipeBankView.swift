@@ -25,31 +25,47 @@ struct RecipeBankView: View {
     @State private var portionBaseDietaryFiber: Double = 0
     @State private var portionBaseAddedSugar: Double = 0
     
-    // Batch-level totals for the current customizedIngredients — used as baseValue macros in RadialHalfSheetSelector
-    private var batchTotalCalories: Int {
+    // Batch-level totals for the current customizedIngredients — scaled to 1 serving
+    private var customizedServingRatio: Double {
+        guard let recipe = recipeToLog ?? recipeToEdit ?? recipeToAddExtras else { return 1.0 }
+        guard let serving = recipe.servingSize, serving > 0 else { return 1.0 }
+        
+        if recipe.measurementType == .weight {
+            let customTBW = recipe.customBatchWeight ?? customizedIngredients.reduce(0.0) { $0 + $1.recipeWeight }
+            return customTBW > 0 ? (serving / customTBW) : 1.0
+        } else {
+            if serving < 1.0 { return serving }
+            else { return 1.0 / serving }
+        }
+    }
+    
+    private var servingBaseCalories: Int {
         let total = customizedIngredients.reduce(0.0) { sum, ing in
             let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
             return sum + (Double(ing.calories) * r)
         }
-        return Int(round(total))
+        return Int(round(total * customizedServingRatio))
     }
-    private var batchTotalFat: Double {
-        customizedIngredients.reduce(0.0) { sum, ing in
+    private var servingBaseFat: Double {
+        let total = customizedIngredients.reduce(0.0) { sum, ing in
             let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
             return sum + (ing.fat * r)
         }
+        return total * customizedServingRatio
     }
-    private var batchTotalCarb: Double {
-        customizedIngredients.reduce(0.0) { sum, ing in
+    private var servingBaseCarb: Double {
+        let total = customizedIngredients.reduce(0.0) { sum, ing in
             let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
             return sum + (ing.carb * r)
         }
+        return total * customizedServingRatio
     }
-    private var batchTotalProtein: Double {
-        customizedIngredients.reduce(0.0) { sum, ing in
+    private var servingBaseProtein: Double {
+        let total = customizedIngredients.reduce(0.0) { sum, ing in
             let r = ing.servingSize > 0 ? (ing.recipeWeight / ing.servingSize) : 1.0
             return sum + (ing.protein * r)
         }
+        return total * customizedServingRatio
     }
     
     var body: some View {
@@ -97,7 +113,7 @@ struct RecipeBankView: View {
                                 }
                             }
                             
-                            Text("\(recipe.totalCalories) kcal | F: \(String(format: "%g", recipe.totalFat))g | C: \(String(format: "%g", recipe.totalCarb))g | P: \(String(format: "%g", recipe.totalProtein))g")
+                            Text("\(recipe.servingCalories) kcal | F: \(recipe.servingFat.formatted(.number.precision(.fractionLength(0))))g | C: \(recipe.servingCarb.formatted(.number.precision(.fractionLength(0))))g | P: \(recipe.servingProtein.formatted(.number.precision(.fractionLength(0))))g")
                                 .font(.caption).italic()
                                 .foregroundColor(.secondary)
                         }
@@ -129,7 +145,7 @@ struct RecipeBankView: View {
                                 // --- Weight recipe actions ---
                                 Button {
                                     customizedIngredients = recipe.ingredients
-                                    adjustedAmount = recipe.ingredients.reduce(0) { $0 + $1.recipeWeight }
+                                    adjustedAmount = recipe.servingSize ?? recipe.totalBatchWeight
                                     recipeToLog = recipe
                                 } label: {
                                     Label("Log Recipe", systemImage: "fork.knife")
@@ -167,7 +183,7 @@ struct RecipeBankView: View {
                     initialIngredients: recipe.ingredients,
                     onNext: { customIngredients in
                         customizedIngredients = customIngredients
-                        adjustedAmount = recipe.measurementType == .fraction ? 1.0 : customIngredients.reduce(0) { $0 + $1.recipeWeight }
+                        adjustedAmount = recipe.measurementType == .fraction ? 1.0 : (recipe.servingSize ?? recipe.customBatchWeight ?? customIngredients.reduce(0) { $0 + $1.recipeWeight })
                         // Small delay to allow the first sheet to dismiss smoothly before the next appears
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                             recipeToLog = recipe
@@ -182,7 +198,7 @@ struct RecipeBankView: View {
                     subtitle: "Input your served portion",
                     unit: recipe.measurementType == .fraction ? "Serving" : "g",
                     value: $adjustedAmount,
-                    baseValue: recipe.measurementType == .fraction ? 1.0 : customizedIngredients.reduce(0) { $0 + $1.recipeWeight },
+                    baseValue: recipe.measurementType == .fraction ? 1.0 : (recipe.servingSize ?? recipe.customBatchWeight ?? customizedIngredients.reduce(0) { $0 + $1.recipeWeight }),
                     onDismiss: { recipeToLog = nil },
                     onSave: {
                         logRecipe(recipe, customIngredients: customizedIngredients, amount: adjustedAmount)
@@ -196,10 +212,10 @@ struct RecipeBankView: View {
                             recipeToAddExtras = recipe
                         }
                     },
-                    baseCalories: batchTotalCalories,
-                    baseFat: batchTotalFat,
-                    baseCarb: batchTotalCarb,
-                    baseProtein: batchTotalProtein
+                    baseCalories: servingBaseCalories,
+                    baseFat: servingBaseFat,
+                    baseCarb: servingBaseCarb,
+                    baseProtein: servingBaseProtein
                 )
             }
             // Extras sheet — optional step after portion selection
