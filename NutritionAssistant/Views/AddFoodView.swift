@@ -22,7 +22,35 @@ struct AddFoodView: View {
     @State private var carb: Double?
     @State private var dietaryFiber: Double?
     @State private var addedSugar: Double?
-    @State private var category: FoodCategory?
+    @State private var category: String?
+    @Query private var customCategories: [UserFoodCategory]
+    @State private var showingAddCategoryAlert = false
+    @State private var newCategoryName = ""
+    @State private var foodVariationGroup: String = ""
+
+    var existingFood: FoodItem?
+
+    init(existingFood: FoodItem? = nil) {
+        self.existingFood = existingFood
+        if let food = existingFood {
+            _brandName = State(initialValue: food.brandName)
+            _isUnbranded = State(initialValue: food.brandName == "Unbranded")
+            _name = State(initialValue: food.name)
+            _processingLevel = State(initialValue: food.processingLevel)
+            _servingSize = State(initialValue: food.servingSize)
+            _servingUnit = State(initialValue: food.servingUnit)
+            _calories = State(initialValue: food.calories)
+            _fat = State(initialValue: food.fat)
+            _saturatedFat = State(initialValue: food.saturatedFat)
+            _transFat = State(initialValue: food.transFat)
+            _protein = State(initialValue: food.protein)
+            _carb = State(initialValue: food.carb)
+            _dietaryFiber = State(initialValue: food.dietaryFiber)
+            _addedSugar = State(initialValue: food.addedSugar)
+            _category = State(initialValue: food.category)
+            _foodVariationGroup = State(initialValue: food.foodVariationGroup ?? "")
+        }
+    }
 
     private var isFormValid: Bool {
         !brandName.isEmpty && !name.isEmpty && servingSize != nil && calories != nil
@@ -90,7 +118,7 @@ struct AddFoodView: View {
     // MARK: - View Body
     var body: some View {
         List {
-            Section(header: Text("Create New Food Template")) {
+            Section(header: Text(existingFood != nil ? "Edit Food Template" : "Create New Food Template")) {
 
                 HStack {
                     Text("Brand Name")
@@ -135,6 +163,13 @@ struct AddFoodView: View {
                         .multilineTextAlignment(.trailing)
                 }
 
+                HStack {
+                    Text("Variation Group")
+                    Spacer()
+                    TextField("Optional", text: $foodVariationGroup)
+                        .multilineTextAlignment(.trailing)
+                }
+
                 Picker("Processing Level", selection: $processingLevel) {
                     ForEach(processingOptions, id: \.self) { option in
                         Text(option)
@@ -143,16 +178,18 @@ struct AddFoodView: View {
                 .pickerStyle(.segmented)
                 .padding(.vertical, 4)
 
-                // Category chip selector — drives the FoodCategory? binding directly
+                // Category chip selector
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(FoodCategory.allCases, id: \.self) { foodCategory in
+                        let allCategories = FoodCategoryList.defaultCategories + customCategories.map { $0.name }
+                        
+                        ForEach(allCategories, id: \.self) { foodCategory in
                             Button(action: {
                                 withAnimation {
                                     category = foodCategory
                                 }
                             }) {
-                                Text(foodCategory.rawValue)
+                                Text(foodCategory)
                                     .fontWeight(.medium)
                                     .padding(.vertical, 10)
                                     .padding(.horizontal, 16)
@@ -163,8 +200,23 @@ struct AddFoodView: View {
                                     .clipShape(Capsule())
                             }
                         }
+                        
+                        Button(action: {
+                            showingAddCategoryAlert = true
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus")
+                                Text("New Category")
+                            }
+                            .fontWeight(.medium)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 16)
+                            .background(Color.accentColor.opacity(0.15))
+                            .foregroundColor(.accentColor)
+                            .clipShape(Capsule())
+                        }
                     }
-                    .padding(.horizontal)
+                    .padding(.vertical, 4)
                 }
 
                 HStack {
@@ -279,30 +331,64 @@ struct AddFoodView: View {
                 .disabled(!isFormValid)
             }
         }
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .alert("New Category", isPresented: $showingAddCategoryAlert) {
+            TextField("Category Name", text: $newCategoryName)
+            Button("Cancel", role: .cancel) { newCategoryName = "" }
+            Button("Add") {
+                if !newCategoryName.isEmpty {
+                    let newCat = UserFoodCategory(name: newCategoryName)
+                    modelContext.insert(newCat)
+                    category = newCategoryName
+                    newCategoryName = ""
+                }
+            }
+            .disabled(newCategoryName.isEmpty)
+        }
     }
 
     private func addItem() {
         guard let selectedCategory = category else { return }
         withAnimation {
-            let newItem = FoodItem(
-                timestamp: Date(),
-                brandName: brandName,
-                name: name,
-                processingLevel: processingLevel,
-                servingSize: servingSize ?? 1.0,
-                servingUnit: servingUnit,
-                calories: calories ?? 0,
-                fat: fat ?? 0.0,
-                saturatedFat: saturatedFat ?? 0.0,
-                transFat: transFat ?? 0.0,
-                protein: protein ?? 0.0,
-                carb: carb ?? 0.0,
-                dietaryFiber: dietaryFiber ?? 0.0,
-                addedSugar: addedSugar ?? 0.0,
-                category: selectedCategory
-            )
-
-            modelContext.insert(newItem)
+            if let existing = existingFood {
+                existing.brandName = brandName
+                existing.name = name
+                existing.processingLevel = processingLevel
+                existing.servingSize = servingSize ?? 1.0
+                existing.servingUnit = servingUnit
+                existing.calories = calories ?? 0
+                existing.fat = fat ?? 0.0
+                existing.saturatedFat = saturatedFat ?? 0.0
+                existing.transFat = transFat ?? 0.0
+                existing.protein = protein ?? 0.0
+                existing.carb = carb ?? 0.0
+                existing.dietaryFiber = dietaryFiber ?? 0.0
+                existing.addedSugar = addedSugar ?? 0.0
+                existing.category = selectedCategory
+                existing.foodVariationGroup = foodVariationGroup.isEmpty ? nil : foodVariationGroup
+            } else {
+                let newItem = FoodItem(
+                    timestamp: Date(),
+                    brandName: brandName,
+                    name: name,
+                    processingLevel: processingLevel,
+                    servingSize: servingSize ?? 1.0,
+                    servingUnit: servingUnit,
+                    calories: calories ?? 0,
+                    fat: fat ?? 0.0,
+                    saturatedFat: saturatedFat ?? 0.0,
+                    transFat: transFat ?? 0.0,
+                    protein: protein ?? 0.0,
+                    carb: carb ?? 0.0,
+                    dietaryFiber: dietaryFiber ?? 0.0,
+                    addedSugar: addedSugar ?? 0.0,
+                    category: selectedCategory,
+                    foodVariationGroup: foodVariationGroup.isEmpty ? nil : foodVariationGroup
+                )
+                modelContext.insert(newItem)
+            }
             dismiss()
         }
     }

@@ -259,7 +259,7 @@ struct SettingsView: View {
                 carbCol.append(item.carb)
                 fiberCol.append(item.dietaryFiber)
                 sugarCol.append(item.addedSugar)
-                categoryCol.append(item.category.rawValue)
+                categoryCol.append(item.category)
             }
             
             var dataFrame = DataFrame()
@@ -359,9 +359,7 @@ struct SettingsView: View {
                     let carbs = extractDouble(columnName: "Carbs", fallback: 0.0)
                     let fiber = extractDouble(columnName: "Dietary Fiber", fallback: 0.0)
                     let sugar = extractDouble(columnName: "Added Sugar", fallback: 0.0)
-                    let categoryString = (row["Category"] as? String) ?? FoodCategory.preparedFoods.rawValue
-                    let category = FoodCategory(rawValue: categoryString) ?? .preparedFoods
-                    
+                    let categoryString = (row["Category"] as? String) ?? "Prepared Foods"
                     let newItem = FoodItem(
                         timestamp: timestamp,
                         brandName: brand,
@@ -377,7 +375,7 @@ struct SettingsView: View {
                         carb: carbs,
                         dietaryFiber: fiber,
                         addedSugar: sugar,
-                        category: category
+                        category: categoryString
                     )
                     
                     modelContext.insert(newItem)

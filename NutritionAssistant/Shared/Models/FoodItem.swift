@@ -1,63 +1,54 @@
 import Foundation
 import SwiftData
 
-enum FoodCategory: String, Codable, CaseIterable {
-    case supplements = "Supplements"
-    case meats = "Meats"
-    case dairy = "Dairy"
-    case seafood = "Seafood"
-    case eggs = "Eggs"
-    case breadsAndGrains = "Breads & Grains"
-    case nutsAndSeeds = "Nuts & Seeds"
-    case vegetables = "Vegetables"
-    case fruits = "Fruits"
-    case drinks = "Drinks"
-    case sugars = "Sugars"
-    case sweetSnacks = "Sweet Snacks"
-    case saltySnacks = "Salty Snacks"
-    case oils = "Oils"
-    case spreadsAndSauces = "Spreads & Sauces"
-    case preparedFoods = "Prepared Foods"
+struct FoodCategoryList {
+    static let defaultCategories = [
+        "Supplements", "Meats", "Dairy", "Seafood", "Eggs", "Breads & Grains", 
+        "Nuts & Seeds", "Vegetables", "Fruits", "Drinks", "Sugars", 
+        "Sweet Snacks", "Salty Snacks", "Oils", "Spreads & Sauces", "Prepared Foods"
+    ]
     
-    var displayName: String {
-        switch self {
-        case .supplements: return "Supplements"
-        case .meats: return "Meats"
-        case .dairy: return "Dairy"
-        case .seafood: return "Seafood"
-        case .eggs: return "Eggs"
-        case .breadsAndGrains: return "Breads/Cereals/Grains"
-        case .nutsAndSeeds: return "Nuts & Seeds"
-        case .vegetables: return "Vegetables"
-        case .fruits: return "Fruit"
-        case .drinks: return "Drink"
-        case .sugars: return "Sugar"
-        case .sweetSnacks: return "Sweet Snack"
-        case .saltySnacks: return "Salty Snacks"
-        case .oils: return "Oil"
-        case .spreadsAndSauces: return "Spreads/Sauces/Condiments"
-        case .preparedFoods: return "Prepared Food"
+    static func displayName(for category: String) -> String {
+        switch category {
+        case "Supplements": return "Supplements"
+        case "Meats": return "Meats"
+        case "Dairy": return "Dairy"
+        case "Seafood": return "Seafood"
+        case "Eggs": return "Eggs"
+        case "Breads & Grains": return "Breads/Cereals/Grains"
+        case "Nuts & Seeds": return "Nuts & Seeds"
+        case "Vegetables": return "Vegetables"
+        case "Fruits": return "Fruit"
+        case "Drinks": return "Drink"
+        case "Sugars": return "Sugar"
+        case "Sweet Snacks": return "Sweet Snack"
+        case "Salty Snacks": return "Salty Snacks"
+        case "Oils": return "Oil"
+        case "Spreads & Sauces": return "Spreads/Sauces/Condiments"
+        case "Prepared Foods": return "Prepared Food"
+        default: return category
         }
     }
     
-    var displayOrder: Int {
-        switch self {
-        case .supplements: return 1
-        case .seafood: return 2
-        case .dairy: return 3
-        case .eggs: return 4
-        case .breadsAndGrains: return 5
-        case .nutsAndSeeds: return 6
-        case .vegetables: return 7
-        case .fruits: return 8
-        case .drinks: return 9
-        case .sugars: return 10
-        case .sweetSnacks: return 11
-        case .oils: return 12
-        case .spreadsAndSauces: return 13
-        case .preparedFoods: return 14
-        case .meats: return 15
-        case .saltySnacks: return 16
+    static func displayOrder(for category: String) -> Int {
+        switch category {
+        case "Supplements": return 1
+        case "Seafood": return 2
+        case "Dairy": return 3
+        case "Eggs": return 4
+        case "Breads & Grains": return 5
+        case "Nuts & Seeds": return 6
+        case "Vegetables": return 7
+        case "Fruits": return 8
+        case "Drinks": return 9
+        case "Sugars": return 10
+        case "Sweet Snacks": return 11
+        case "Oils": return 12
+        case "Spreads & Sauces": return 13
+        case "Prepared Foods": return 14
+        case "Meats": return 15
+        case "Salty Snacks": return 16
+        default: return 999
         }
     }
 }
@@ -79,9 +70,10 @@ final class FoodItem {
     var carb: Double
     var dietaryFiber: Double
     var addedSugar: Double
-    var category: FoodCategory
+    var category: String
+    var foodVariationGroup: String?
     
-    init(id: UUID = UUID(), timestamp: Date, brandName: String, name: String, processingLevel: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: FoodCategory = .preparedFoods) {
+    init(id: UUID = UUID(), timestamp: Date, brandName: String, name: String, processingLevel: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: String = "Prepared Foods", foodVariationGroup: String? = nil) {
         self.id = id
         self.timestamp = timestamp
         self.brandName = brandName
@@ -98,6 +90,7 @@ final class FoodItem {
         self.dietaryFiber = dietaryFiber
         self.addedSugar = addedSugar
         self.category = category
+        self.foodVariationGroup = foodVariationGroup
     }
 }
 
@@ -120,7 +113,7 @@ extension FoodItem {
             carb: 3.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .supplements
+            category: "Supplements"
         ),
         FoodItem(
             id: UUID(),
@@ -138,7 +131,7 @@ extension FoodItem {
             carb: 3.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .supplements
+            category: "Supplements"
         ),
         FoodItem(
             id: UUID(),
@@ -156,7 +149,7 @@ extension FoodItem {
             carb: 5.0,
             dietaryFiber: 3.0,
             addedSugar: 2.0,
-            category: .supplements
+            category: "Supplements"
         ),
         FoodItem(
             id: UUID(),
@@ -174,7 +167,7 @@ extension FoodItem {
             carb: 0.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .supplements
+            category: "Supplements"
         ),
         FoodItem(
             id: UUID(),
@@ -192,7 +185,7 @@ extension FoodItem {
             carb: 0.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .supplements
+            category: "Supplements"
         ),
         FoodItem(
             id: UUID(),
@@ -210,7 +203,7 @@ extension FoodItem {
             carb: 1.0,
             dietaryFiber: 0.0,
             addedSugar: 1.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -228,7 +221,7 @@ extension FoodItem {
             carb: 13.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -246,7 +239,7 @@ extension FoodItem {
             carb: 12.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -264,7 +257,7 @@ extension FoodItem {
             carb: 1.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -282,7 +275,7 @@ extension FoodItem {
             carb: 1.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -300,7 +293,7 @@ extension FoodItem {
             carb: 2.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -318,7 +311,7 @@ extension FoodItem {
             carb: 2.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -336,7 +329,7 @@ extension FoodItem {
             carb: 1.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -354,7 +347,7 @@ extension FoodItem {
             carb: 6.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -372,7 +365,7 @@ extension FoodItem {
             carb: 7.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -390,7 +383,7 @@ extension FoodItem {
             carb: 0.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .dairy
+            category: "Dairy"
         ),
         FoodItem(
             id: UUID(),
@@ -408,7 +401,7 @@ extension FoodItem {
             carb: 1.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .eggs
+            category: "Eggs"
         ),
         FoodItem(
             id: UUID(),
@@ -426,7 +419,7 @@ extension FoodItem {
             carb: 0.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .eggs
+            category: "Eggs"
         ),
         FoodItem(
             id: UUID(),
@@ -444,7 +437,7 @@ extension FoodItem {
             carb: 27.0,
             dietaryFiber: 4.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -462,7 +455,7 @@ extension FoodItem {
             carb: 8.0,
             dietaryFiber: 2.0,
             addedSugar: 2.0,
-            category: .nutsAndSeeds
+            category: "Nuts & Seeds"
         ),
         FoodItem(
             id: UUID(),
@@ -480,7 +473,7 @@ extension FoodItem {
             carb: 6.0,
             dietaryFiber: 4.0,
             addedSugar: 1.0,
-            category: .nutsAndSeeds
+            category: "Nuts & Seeds"
         ),
         FoodItem(
             id: UUID(),
@@ -498,7 +491,7 @@ extension FoodItem {
             carb: 5.0,
             dietaryFiber: 3.0,
             addedSugar: 9.0,
-            category: .nutsAndSeeds
+            category: "Nuts & Seeds"
         ),
         FoodItem(
             id: UUID(),
@@ -516,7 +509,7 @@ extension FoodItem {
             carb: 4.0,
             dietaryFiber: 2.0,
             addedSugar: 0.0,
-            category: .nutsAndSeeds
+            category: "Nuts & Seeds"
         ),
         FoodItem(
             id: UUID(),
@@ -534,7 +527,7 @@ extension FoodItem {
             carb: 3.0,
             dietaryFiber: 2.0,
             addedSugar: 0.0,
-            category: .vegetables
+            category: "Vegetables"
         ),
         FoodItem(
             id: UUID(),
@@ -552,7 +545,7 @@ extension FoodItem {
             carb: 15.0,
             dietaryFiber: 2.0,
             addedSugar: 0.0,
-            category: .vegetables
+            category: "Vegetables"
         ),
         FoodItem(
             id: UUID(),
@@ -570,7 +563,7 @@ extension FoodItem {
             carb: 27.0,
             dietaryFiber: 3.1,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -588,7 +581,7 @@ extension FoodItem {
             carb: 22.0,
             dietaryFiber: 3.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -606,7 +599,7 @@ extension FoodItem {
             carb: 21.0,
             dietaryFiber: 3.5,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -624,7 +617,7 @@ extension FoodItem {
             carb: 13.5,
             dietaryFiber: 1.5,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -642,7 +635,7 @@ extension FoodItem {
             carb: 12.0,
             dietaryFiber: 3.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -660,7 +653,7 @@ extension FoodItem {
             carb: 39.0,
             dietaryFiber: 0.0,
             addedSugar: 39.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -678,7 +671,7 @@ extension FoodItem {
             carb: 1.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -696,7 +689,7 @@ extension FoodItem {
             carb: 16.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -714,7 +707,7 @@ extension FoodItem {
             carb: 27.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -732,7 +725,7 @@ extension FoodItem {
             carb: 22.0,
             dietaryFiber: 1.0,
             addedSugar: 21.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -750,7 +743,7 @@ extension FoodItem {
             carb: 0.0,
             dietaryFiber: 0.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -768,7 +761,7 @@ extension FoodItem {
             carb: 10.0,
             dietaryFiber: 0.0,
             addedSugar: 6.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -786,7 +779,7 @@ extension FoodItem {
             carb: 83.0,
             dietaryFiber: 3.0,
             addedSugar: 1.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         ),
         FoodItem(
             id: UUID(),
@@ -804,7 +797,7 @@ extension FoodItem {
             carb: 102.0,
             dietaryFiber: 5.0,
             addedSugar: 0.0,
-            category: .preparedFoods
+            category: "Prepared Foods"
         )
     ] }
 }

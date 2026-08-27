@@ -41,7 +41,7 @@ struct RecipeIngredient: Codable, Identifiable, Sendable {
     var carb: Double
     var dietaryFiber: Double
     var addedSugar: Double
-    var category: FoodCategory
+    var category: String
     
     var recipeWeight: Double
     
@@ -71,20 +71,24 @@ final class RecipeItem {
     var type: String
     var measurementType: RecipeMeasurementType
     var ingredients: [RecipeIngredient]
+    var additives: [RecipeIngredient] = []
     var category: String
     var customBatchWeight: Double?
     var finalWeightPostponed: Bool
     var servingSize: Double?
+    var recipeVariationGroup: String?
     
-    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], category: String = "Entrees", customBatchWeight: Double? = nil, finalWeightPostponed: Bool = false, servingSize: Double? = nil) {
+    init(name: String, type: String, measurementType: RecipeMeasurementType = .weight, ingredients: [RecipeIngredient] = [], additives: [RecipeIngredient] = [], category: String = "Entrees", customBatchWeight: Double? = nil, finalWeightPostponed: Bool = false, servingSize: Double? = nil, recipeVariationGroup: String? = nil) {
         self.name = name
         self.type = type
         self.measurementType = measurementType
         self.ingredients = ingredients
+        self.additives = additives
         self.category = category
         self.customBatchWeight = customBatchWeight
         self.finalWeightPostponed = finalWeightPostponed
         self.servingSize = servingSize
+        self.recipeVariationGroup = recipeVariationGroup
     }
 }
 
@@ -167,10 +171,12 @@ extension RecipeItem {
             type: self.type,
             measurementType: self.measurementType,
             ingredients: self.ingredients,
+            additives: self.additives,
             category: self.category,
             customBatchWeight: self.customBatchWeight,
             finalWeightPostponed: self.finalWeightPostponed,
-            servingSize: self.servingSize
+            servingSize: self.servingSize,
+            recipeVariationGroup: self.recipeVariationGroup
         )
     }
     
@@ -180,10 +186,12 @@ extension RecipeItem {
             type: dto.type,
             measurementType: dto.measurementType,
             ingredients: dto.ingredients,
+            additives: dto.additives ?? [],
             category: dto.category,
             customBatchWeight: dto.customBatchWeight,
             finalWeightPostponed: dto.finalWeightPostponed ?? false,
-            servingSize: dto.servingSize
+            servingSize: dto.servingSize,
+            recipeVariationGroup: dto.recipeVariationGroup
         )
         self.id = dto.id
     }

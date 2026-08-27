@@ -6,7 +6,7 @@
 import SwiftUI
 import SwiftData
 
-struct AddIngredientsHalfSheetSelector: View {
+struct AddExtrasHalfSheetSelector: View {
     @Environment(\.dismiss) private var dismiss
     
     let recipeName: String

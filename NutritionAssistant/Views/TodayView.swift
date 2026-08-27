@@ -2,14 +2,31 @@ import SwiftUI
 import SwiftData
 
 struct TodayView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query private var userSettingsList: [UserSettings]
     
     private var dayStartHour: Int {
         userSettingsList.first?.dayStartHour ?? 0
     }
     
-    @Query(sort: \ConsumedItem.timestamp, order: .reverse) private var consumedItems: [ConsumedItem]
+    private var todayLogical: Date {
+        Date().logicalDay(startHour: dayStartHour)
+    }
+    
+    var body: some View {
+        TodayContentView(
+            dayStartHour: dayStartHour,
+            todayLogical: todayLogical
+        )
+    }
+}
+
+struct TodayContentView: View {
+    @Environment(\.modelContext) private var modelContext
+    
+    let dayStartHour: Int
+    let todayLogical: Date
+    
+    @Query private var consumedItems: [ConsumedItem]
     
     @State private var itemToView: ConsumedItem?
     @State private var itemToEdit: ConsumedItem?
@@ -21,18 +38,30 @@ struct TodayView: View {
     @State private var showSettings = false
     @State private var showResetTime = false
     
-    private var todaysItems: [ConsumedItem] {
-        let todayLogical = Date().logicalDay(startHour: dayStartHour)
-        return consumedItems.filter { $0.logicalDate == todayLogical }
+    @State private var groupForAlert: [ConsumedItem]?
+    @State private var groupToEditTime: [ConsumedItem]?
+    @State private var showTimePickerSheet = false
+    @State private var selectedGroupTime: Date = Date()
+    
+    init(dayStartHour: Int, todayLogical: Date) {
+        self.dayStartHour = dayStartHour
+        self.todayLogical = todayLogical
+        
+        let targetDate = todayLogical
+        let predicate = #Predicate<ConsumedItem> { item in
+            item.logicalDate == targetDate
+        }
+        
+        _consumedItems = Query(filter: predicate, sort: \.timestamp, order: .reverse)
     }
     
-    private var totalCalories: Int { todaysItems.reduce(0) { $0 + $1.calories } }
-    private var totalCarbs: Double { todaysItems.reduce(0.0) { $0 + $1.carb } }
-    private var totalProtein: Double { todaysItems.reduce(0.0) { $0 + $1.protein } }
-    private var totalFat: Double { todaysItems.reduce(0.0) { $0 + $1.fat } }
+    private var totalCalories: Int { consumedItems.reduce(0) { $0 + $1.calories } }
+    private var totalCarbs: Double { consumedItems.reduce(0.0) { $0 + $1.carb } }
+    private var totalProtein: Double { consumedItems.reduce(0.0) { $0 + $1.protein } }
+    private var totalFat: Double { consumedItems.reduce(0.0) { $0 + $1.fat } }
 
     private var groupedItems: [(anchor: Date, items: [ConsumedItem])] {
-        let ascending = todaysItems.sorted { $0.timestamp < $1.timestamp }
+        let ascending = consumedItems.sorted { $0.timestamp < $1.timestamp }
         var groups: [(Date, [ConsumedItem])] = []
         
         for item in ascending {
@@ -113,6 +142,9 @@ struct TodayView: View {
                                 Text(formattedRoundedTime(for: group.anchor))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
+                                    .onTapGesture {
+                                        groupForAlert = group.items
+                                    }
                                 
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.3))
@@ -127,6 +159,12 @@ struct TodayView: View {
                                     VStack(alignment: .leading) {
                                         Text(item.name)
                                             .font(.headline)
+                                        
+                                        if let additives = item.recipeAdditives, !additives.isEmpty {
+                                            Text("+ \(additives.map { $0.name }.joined(separator: ", "))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
                                         
                                         Text("\(String(format: "%g", item.servingSize)) \(item.servingUnit)")
                                             .font(.subheadline)
@@ -155,10 +193,12 @@ struct TodayView: View {
                                 }
                                 .contextMenu {
                                     if item.isRecipe {
-                                        Button {
-                                            itemToEditIngredients = item
-                                        } label: {
-                                            Label("Edit Ingredients", systemImage: "list.bullet")
+                                        if item.recipeCustomBatchWeight == nil {
+                                            Button {
+                                                itemToEditIngredients = item
+                                            } label: {
+                                                Label("Edit Ingredients", systemImage: "list.bullet")
+                                            }
                                         }
                                     } else {
                                         Button {
@@ -234,20 +274,45 @@ struct TodayView: View {
                 NavigationStack {
                     List {
                         if let ingredients = item.recipeIngredients, !ingredients.isEmpty {
-                            Section(header: Text("Ingredients")) {
+                            Section {
                                 ForEach(ingredients) { ingredient in
                                     HStack {
                                         Text(ingredient.name)
                                             .fontWeight(.medium)
                                         Spacer()
-                                        Text("\(String(format: "%.1f", ingredient.recipeWeight)) \(ingredient.servingUnit)")
+                                        if item.recipeRatio == 1.0 {
+                                            Text("\(String(format: "%.1f", ingredient.recipeWeight)) \(ingredient.servingUnit)")
+                                                .foregroundColor(.secondary)
+                                        } else {
+                                            VStack(alignment: .trailing, spacing: 2) {
+                                                Text("Recipe: \(String(format: "%.1f", ingredient.recipeWeight)) \(ingredient.servingUnit)")
+                                                Text("Portion: \(String(format: "%.1f", ingredient.recipeWeight * item.recipeRatio)) \(ingredient.servingUnit)")
+                                            }
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                            } header: {
+                                HStack {
+                                    Text("Ingredients")
+                                    Spacer()
+                                    if item.isRecipe && item.recipeCustomBatchWeight == nil {
+                                        Button {
+                                            itemToView = nil
+                                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                                itemToEditIngredients = item
+                                            }
+                                        } label: {
+                                            Image(systemName: "rectangle.and.pencil.and.ellipsis")
+                                                .font(.body)
+                                        }
                                     }
                                 }
                             }
                             
-                            if let additives = item.recipeAdditives, !additives.isEmpty {
-                                Section(header: Text("Extras")) {
+                            Section {
+                                if let additives = item.recipeAdditives {
                                     ForEach(additives) { additive in
                                         HStack {
                                             Text(additive.name)
@@ -256,6 +321,17 @@ struct TodayView: View {
                                             Text("\(String(format: "%.1f", additive.recipeWeight)) \(additive.servingUnit)")
                                                 .foregroundColor(.secondary)
                                         }
+                                    }
+                                }
+                            } header: {
+                                HStack {
+                                    Text("Extras")
+                                    Spacer()
+                                    Button {
+                                        print("Add extra to consumed item")
+                                    } label: {
+                                        Image(systemName: "plus.app")
+                                            .font(.body)
                                     }
                                 }
                             }
@@ -273,6 +349,44 @@ struct TodayView: View {
                     }
                 }
                 .presentationDetents([.medium, .large])
+            }
+            .alert("Change Meal Group Time?", isPresented: Binding(
+                get: { groupForAlert != nil },
+                set: { if !$0 { groupForAlert = nil } }
+            )) {
+                Button("Change") {
+                    if let group = groupForAlert {
+                        groupToEditTime = group
+                        selectedGroupTime = group.first?.timestamp ?? Date()
+                        showTimePickerSheet = true
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            }
+            .sheet(isPresented: $showTimePickerSheet) {
+                NavigationStack {
+                    DatePicker("Select Time", selection: $selectedGroupTime, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .navigationTitle("Edit Meal Time")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") { showTimePickerSheet = false }
+                            }
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Save") {
+                                    if let items = groupToEditTime {
+                                        for item in items {
+                                            item.timestamp = selectedGroupTime
+                                        }
+                                    }
+                                    showTimePickerSheet = false
+                                }
+                            }
+                        }
+                        .presentationDetents([.medium])
+                }
             }
         }
     }

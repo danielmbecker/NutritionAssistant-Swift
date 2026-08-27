@@ -17,14 +17,16 @@ final class ConsumedItem {
     var carb: Double
     var dietaryFiber: Double
     var addedSugar: Double
-    var category: FoodCategory
+    var category: String
     
     var isRecipe: Bool
     var recipeCategory: String?
     var recipeIngredients: [RecipeIngredient]?
     var recipeAdditives: [RecipeIngredient]?
+    var recipeCustomBatchWeight: Double?
+    var recipeRatio: Double = 1.0
     
-    init(timestamp: Date, logicalDate: Date, name: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: FoodCategory = .preparedFoods, isRecipe: Bool = false, recipeCategory: String? = nil, recipeIngredients: [RecipeIngredient]? = nil, recipeAdditives: [RecipeIngredient]? = nil) {
+    init(timestamp: Date, logicalDate: Date, name: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: String = "Prepared Foods", isRecipe: Bool = false, recipeCategory: String? = nil, recipeIngredients: [RecipeIngredient]? = nil, recipeAdditives: [RecipeIngredient]? = nil, recipeCustomBatchWeight: Double? = nil, recipeRatio: Double = 1.0) {
         self.timestamp = timestamp
         self.logicalDate = logicalDate
         self.name = name
@@ -43,6 +45,8 @@ final class ConsumedItem {
         self.recipeCategory = recipeCategory
         self.recipeIngredients = recipeIngredients
         self.recipeAdditives = recipeAdditives
+        self.recipeCustomBatchWeight = recipeCustomBatchWeight
+        self.recipeRatio = recipeRatio
     }
 }
 

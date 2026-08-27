@@ -10,7 +10,8 @@ struct NutritionAssistantApp: App {
             ConsumedItem.self,
             UserSettings.self,
             RecipeItem.self,
-            UserRecipeCategory.self
+            UserRecipeCategory.self,
+            UserFoodCategory.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

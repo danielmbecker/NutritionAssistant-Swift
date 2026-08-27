@@ -7,18 +7,28 @@ struct AddRecipieView: View {
     @Binding var isDirty: Bool
     @State private var recipe = RecipeItem(name: "", type: "Recipe")
     @State private var showingAddFoodSheet = false
+    @State private var showingAddExtraSheet = false
     @State private var displayServingAsFraction = false
     @State private var hasSelectedMeasurement = false
     @State private var fractionSections: Int = -4
     @State private var recipeWeightStatic = true
+    @State private var ingredientToEdit: RecipeIngredient?
+    @State private var additiveToEdit: RecipeIngredient?
+    @State private var editedWeight: Double = 0.0
     
     var existingRecipe: RecipeItem?
+    var isVariation: Bool = false
     
     @Query private var customCategories: [UserRecipeCategory]
     @State private var showingAddCategoryAlert = false
     @State private var newCategoryName = ""
     
-    init(isDirty: Binding<Bool>, existingRecipe: RecipeItem? = nil) {
+    enum Field: Hashable {
+        case variationGroup
+    }
+    @FocusState private var focusedField: Field?
+    
+    init(isDirty: Binding<Bool>, existingRecipe: RecipeItem? = nil, variationSource: RecipeItem? = nil) {
         self._isDirty = isDirty
         self.existingRecipe = existingRecipe
         if let existing = existingRecipe {
@@ -28,7 +38,36 @@ struct AddRecipieView: View {
             if let serving = existing.servingSize {
                 if serving > 0 && serving < 1.0 {
                     self._fractionSections = State(initialValue: -Int(round(1.0 / serving)))
-                } else if serving >= 1.0 {
+                } else if serving == 1.0 {
+                    self._fractionSections = State(initialValue: -1)
+                } else if serving > 1.0 {
+                    self._fractionSections = State(initialValue: Int(round(serving)))
+                }
+            }
+        } else if let source = variationSource {
+            self.isVariation = true
+            // Create a new recipe object with the same values
+            let newRecipe = RecipeItem(
+                name: source.name,
+                type: source.type,
+                measurementType: source.measurementType,
+                ingredients: source.ingredients.map { var copy = $0; copy.id = UUID(); return copy },
+                additives: source.additives.map { var copy = $0; copy.id = UUID(); return copy },
+                category: source.category,
+                customBatchWeight: source.customBatchWeight,
+                finalWeightPostponed: source.finalWeightPostponed,
+                servingSize: source.servingSize,
+                recipeVariationGroup: source.recipeVariationGroup ?? source.name
+            )
+            self._recipe = State(initialValue: newRecipe)
+            self._hasSelectedMeasurement = State(initialValue: true)
+            self._recipeWeightStatic = State(initialValue: source.customBatchWeight == nil)
+            if let serving = source.servingSize {
+                if serving > 0 && serving < 1.0 {
+                    self._fractionSections = State(initialValue: -Int(round(1.0 / serving)))
+                } else if serving == 1.0 {
+                    self._fractionSections = State(initialValue: -1)
+                } else if serving > 1.0 {
                     self._fractionSections = State(initialValue: Int(round(serving)))
                 }
             }
@@ -52,7 +91,7 @@ struct AddRecipieView: View {
                             
                         
                         HStack {
-                            Text("Recipe Name")
+                            Text("Recipe Name").padding(5)
                             TextField("Enter recipe name...", text: $recipe.name)
                                 .textFieldStyle(.roundedBorder)
                         }
@@ -101,6 +140,22 @@ struct AddRecipieView: View {
                         }
                     }
                      
+                    HStack {
+                        Text("Add as Variation")
+                        TextField("Variation Group Name", text: Binding(
+                            get: { recipe.recipeVariationGroup ?? "" },
+                            set: { recipe.recipeVariationGroup = $0.isEmpty ? nil : $0 }
+                        ))
+                        .focused($focusedField, equals: .variationGroup)
+                        .textFieldStyle(.roundedBorder)
+                        
+                        Button(action: {
+                            // No action for now
+                        }) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .buttonStyle(.plain)
+                    }
                     HStack {
                         HStack(spacing: 4) {
                             if !hasSelectedMeasurement {
@@ -232,82 +287,169 @@ struct AddRecipieView: View {
                 }
                 
              
-                    VStack(alignment: .leading, spacing: 12) {
+                Section(header: HStack {
+                    Text("Ingredients")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .textCase(nil)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showingAddFoodSheet = true
+                    }) {
+                        Text("Add Food")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showingAddFoodSheet) {
+                        AddFoodToRecipeSheet(ingredients: $recipe.ingredients)
+                    }
+                }) {
+                    ForEach(recipe.ingredients) { item in
+                        let ratio = item.servingSize > 0 ? (item.recipeWeight / item.servingSize) : 1.0
                         HStack {
-                            Text("Ingredients")
-                                .font(.headline)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(item.name)
+                                        .fontWeight(.semibold)
+                                    Text("\(Int(round(Double(item.calories) * ratio))) kcal")
+                                        .foregroundColor(.secondary)
+                                }
+                                  
+                                Text("F: \(item.fat * ratio, specifier: "%.0f")g | P: \(item.protein * ratio, specifier: "%.0f")g | C: \(item.carb * ratio, specifier: "%.0f")g")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                             
                             Spacer()
                             
                             Button(action: {
-                                showingAddFoodSheet = true
+                                editedWeight = item.recipeWeight
+                                ingredientToEdit = item
                             }) {
-                                Text("Add Food")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 12)
+                                Label("\(item.recipeWeight, specifier: "%.1f") \(item.servingUnit)", systemImage: "pencil")
+                                    .font(.caption)
+                                    .frame(width: 80, alignment: .trailing)
                                     .padding(.vertical, 6)
-                                    .background(Color.accentColor)
-                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .background(Color.gray.opacity(0.15))
                                     .cornerRadius(8)
                             }
                             .buttonStyle(.plain)
-                            .sheet(isPresented: $showingAddFoodSheet) {
-                                AddFoodToRecipeSheet(ingredients: $recipe.ingredients)
-                            }
+                            .foregroundColor(.accentColor)
                         }
-                        
-                        // Ingredient loop
-                        ForEach(recipe.ingredients) { item in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(item.name)
-                                            .fontWeight(.semibold)
-                                        Text("\(item.calories) kcal")
-                                            .foregroundColor(.secondary)
-                                    }
-                                      
-                                    Text("F: \(item.fat, specifier: "%.0f")g | P: \(item.protein, specifier: "%.0f")g | C: \(item.carb, specifier: "%.0f")g")
-                                        .font(.caption)
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete { indices in
+                        recipe.ingredients.remove(atOffsets: indices)
+                    }
+                    
+                    if recipe.ingredients.isEmpty {
+                        Text("No ingredients added yet.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
+                    }
+                }
+                    
+                Section(header: HStack {
+                    Text("Toppings, Sauces, and Extras")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .textCase(nil)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showingAddExtraSheet = true
+                    }) {
+                        Text("Add Extra")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showingAddExtraSheet) {
+                        AddFoodToRecipeSheet(ingredients: $recipe.additives)
+                    }
+                }) {
+                    ForEach(recipe.additives) { item in
+                        let ratio = item.servingSize > 0 ? (item.recipeWeight / item.servingSize) : 1.0
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(item.name)
+                                        .fontWeight(.semibold)
+                                    Text("\(Int(round(Double(item.calories) * ratio))) kcal")
                                         .foregroundColor(.secondary)
                                 }
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    // Edit serving size logic
-                                }) {
-                                    Label("\(item.recipeWeight, specifier: "%.1f") \(item.servingUnit)", systemImage: "pencil")
-                                        .font(.caption)
-                                        .padding(.vertical, 6)
-                                        .padding(.horizontal, 10)
-                                        .background(Color.gray.opacity(0.15))
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(.accentColor)
+                                  
+                                Text("F: \(item.fat * ratio, specifier: "%.0f")g | P: \(item.protein * ratio, specifier: "%.0f")g | C: \(item.carb * ratio, specifier: "%.0f")g")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
-                            .padding(.vertical, 4)
+                            
+                            Spacer()
+                            
+                            Button(action: {
+                                editedWeight = item.recipeWeight
+                                additiveToEdit = item
+                            }) {
+                                Label("\(item.recipeWeight, specifier: "%.1f") \(item.servingUnit)", systemImage: "pencil")
+                                    .font(.caption)
+                                    .frame(width: 80, alignment: .trailing)
+                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 10)
+                                    .background(Color.gray.opacity(0.15))
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.accentColor)
                         }
-                        
-                        if recipe.ingredients.isEmpty {
-                            Text("No ingredients added yet.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .padding(.top, 8)
-                        }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 8)
+                    .onDelete { indices in
+                        recipe.additives.remove(atOffsets: indices)
+                    }
+                    
+                    if recipe.additives.isEmpty {
+                        Text("No extras added yet.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
+                    }
+                }
                 }
             }
-            .navigationTitle(existingRecipe == nil ? "Add Recipe" : "Edit Recipe")
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+            .navigationTitle(isVariation ? "Create Recipe Variation" : (existingRecipe == nil ? "Add Recipe" : "Edit Recipe"))
             .onChange(of: recipe.name) { checkDirty() }
             .onChange(of: recipe.measurementType) { checkDirty() }
             .onChange(of: recipe.ingredients.count) { checkDirty() }
+            .onChange(of: recipe.additives.count) { checkDirty() }
+            .onAppear {
+                if isVariation {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        focusedField = .variationGroup
+                    }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if existingRecipe != nil {
+                    if existingRecipe != nil || isVariation {
                         Button("Cancel") { dismiss() }
                     }
                 }
@@ -331,6 +473,38 @@ struct AddRecipieView: View {
             } message: {
                 Text("Enter a name for the new custom category.")
             }
+            .sheet(item: $ingredientToEdit) { ingredient in
+                RadialHalfSheetSelector(
+                    title: "How Much?",
+                    subtitle: "Adjust amount for \(ingredient.name)",
+                    unit: ingredient.servingUnit,
+                    value: $editedWeight,
+                    baseValue: ingredient.servingSize,
+                    onDismiss: { ingredientToEdit = nil },
+                    onSave: {
+                        if let index = recipe.ingredients.firstIndex(where: { $0.id == ingredient.id }) {
+                            recipe.ingredients[index].recipeWeight = editedWeight
+                        }
+                        ingredientToEdit = nil
+                    }
+                )
+            }
+            .sheet(item: $additiveToEdit) { additive in
+                RadialHalfSheetSelector(
+                    title: "How Much?",
+                    subtitle: "Adjust amount for \(additive.name)",
+                    unit: additive.servingUnit,
+                    value: $editedWeight,
+                    baseValue: additive.servingSize,
+                    onDismiss: { additiveToEdit = nil },
+                    onSave: {
+                        if let index = recipe.additives.firstIndex(where: { $0.id == additive.id }) {
+                            recipe.additives[index].recipeWeight = editedWeight
+                        }
+                        additiveToEdit = nil
+                    }
+                )
+            }
         }
     }
     
@@ -343,7 +517,7 @@ struct AddRecipieView: View {
             modelContext.insert(recipe)
         }
         
-        if existingRecipe != nil {
+        if existingRecipe != nil || isVariation {
             dismiss()
         } else {
             // Reset form for next recipe
@@ -364,10 +538,18 @@ struct AddFoodToRecipeSheet: View {
     @State private var itemToLog: FoodItem?
     @State private var adjustedServingSize: Double = 0.0
     
-    var groupedItems: [(category: FoodCategory, items: [FoodItem])] {
+    var groupedItems: [(category: String, items: [FoodItem])] {
         let grouped = Dictionary(grouping: items, by: { $0.category })
         return grouped.map { (category: $0.key, items: $0.value.sorted { $0.name < $1.name }) }
-            .sorted { $0.category.displayOrder < $1.category.displayOrder }
+            .sorted {
+                let order1 = FoodCategoryList.displayOrder(for: $0.category)
+                let order2 = FoodCategoryList.displayOrder(for: $1.category)
+                
+                if order1 == 999 && order2 == 999 {
+                    return $0.category < $1.category
+                }
+                return order1 < order2
+            }
     }
     
     var body: some View {
@@ -376,7 +558,7 @@ struct AddFoodToRecipeSheet: View {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     ForEach(groupedItems, id: \.category) { group in
                         LazyVStack(alignment: .leading, spacing: 1) {
-                            Text(group.category.displayName)
+                            Text(FoodCategoryList.displayName(for: group.category))
                                 .font(.headline)
                                 .foregroundColor(.secondary)
                                 .padding(.horizontal)

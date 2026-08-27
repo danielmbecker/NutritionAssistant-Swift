@@ -677,7 +677,7 @@ private struct MacroProgressBar: View {
             carb:         mock.carbs,
             dietaryFiber: 26,
             addedSugar:   28,
-            category:     .preparedFoods
+            category:     "Prepared Foods"
         )
         container.mainContext.insert(item)
     }

@@ -25,10 +25,40 @@
 
 
 //press and hold food item ; Offer a "Define Raw and Cooked Version"
-    //maybe needs some kind of subtype or details to have that work
+//maybe needs some kind of subtype or details to have that work
+//Variation groups has solved this need
 
 //when editing the ingredients values of a recipeItem in TodayView the RecipeWeightsHalfSheetsSelector displays, but if a weight is updated, this state change does not get passed to the RadialHalfSheetSelector.
 
 
 //HealthKit to determine user Active and Passive calories, and their weight ? nah they dont record that
 // Healthkit should be an option. many people dont have their phone and watch on all the time . 
+
+///
+///
+///
+///
+///Breakpoint
+///
+///Create Healthkit API to retrieve activity data
+///Refactor Goals to accomodate a set caloric value as defined by Apple Health -> This maybe should be a toggle setting, such that users can choose - not everyone uses a watch or phone when excercising
+///Imput a BMR + TDEE calculator, and a Calorie supplementation or decifit functionality.
+///
+///
+///RecognizeDocumentsRequest
+///
+///
+///Today view reorganization
+///Mini history view on TodayView, with graphic chart, maybe weekly metrics
+///
+/// beautiful , thank you
+
+//We added a method for a user to add a potential category to assign to RecipieItems when creating them in AddRecipeView. Lets add a comprable functionality in AddFoodView, such that a user can create a new food category
+///
+///
+///
+///
+///
+///
+
+
