@@ -9,6 +9,11 @@ class SettingsViewModel {
     var carbInput: Int?
     var proteinInput: Int?
     
+    // Macro Lock State Variables
+    var fatLock: MacroLock = .none
+    var carbLock: MacroLock = .none
+    var proteinLock: MacroLock = .none
+    
     // Micronutrient State Variables
     var satFatInput: Int?
     var transFatInput: Int?
@@ -37,6 +42,10 @@ class SettingsViewModel {
         transFatInput = settings.userTransFatGoal
         fiberInput = settings.userDietaryFiberGoal
         sugarInput = settings.userAddedSugarGoal
+        
+        fatLock = settings.fatLock
+        carbLock = settings.carbLock
+        proteinLock = settings.proteinLock
     }
     
     // MARK: - Database Save Actions
@@ -63,6 +72,15 @@ class SettingsViewModel {
             if let newCarbs = carbInput { currentSettings.userCarbGoal = newCarbs }
             if let newProtein = proteinInput { currentSettings.userProteinGoal = newProtein }
             hideKeyboard()
+        }
+    }
+    
+    func saveLocks(settingsList: [UserSettings]) {
+        if let currentSettings = settingsList.first {
+            currentSettings.fatLock = fatLock
+            currentSettings.carbLock = carbLock
+            currentSettings.proteinLock = proteinLock
+            // SwiftData auto-saves on runloop end, but we can rely on modelContext if needed.
         }
     }
     

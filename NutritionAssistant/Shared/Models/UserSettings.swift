@@ -1,6 +1,12 @@
 import Foundation
 import SwiftData
 
+enum MacroLock: String, Codable {
+    case none = "none"
+    case percent = "percent"
+    case grams = "grams"
+}
+
 enum GoalType: String, Codable {
     case goal = "Goal"
     case limit = "Limit"
@@ -35,6 +41,14 @@ final class UserSettings {
     
     var dayStartHour: Int
     
+    // NEW: Optional toggle for custom HealthKit window
+    var healthKitCustomDayWindow: Bool
+    
+    // NEW: Macro Lock states
+    var fatLock: MacroLock
+    var carbLock: MacroLock
+    var proteinLock: MacroLock
+    
     var userSelectedPrimaryColorHex: String
     
     // Initializer with beautifully balanced mathematical defaults!
@@ -64,6 +78,11 @@ final class UserSettings {
         userAddedSugarGoalType: GoalType = .limit,
         
         dayStartHour: Int = 0,
+        healthKitCustomDayWindow: Bool = false,
+        
+        fatLock: MacroLock = .none,
+        carbLock: MacroLock = .none,
+        proteinLock: MacroLock = .none,
         
         userSelectedPrimaryColorHex: String = "#007AFF"
     ) {
@@ -92,6 +111,12 @@ final class UserSettings {
         self.userAddedSugarGoalType = userAddedSugarGoalType
         
         self.dayStartHour = dayStartHour
+        self.healthKitCustomDayWindow = healthKitCustomDayWindow
+        
+        self.fatLock = fatLock
+        self.carbLock = carbLock
+        self.proteinLock = proteinLock
+        
         self.userSelectedPrimaryColorHex = userSelectedPrimaryColorHex
     }
 }

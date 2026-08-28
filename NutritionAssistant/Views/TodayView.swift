@@ -134,6 +134,8 @@ struct TodayContentView: View {
                 .padding(.vertical, 12)
                 .background(Color(UIColor.systemGroupedBackground))
                 
+                HealthKitDashboardView()
+                
                 List {
                     Section(header: Text("My Log")) {
                         ForEach(groupedItems, id: \.anchor) { group in

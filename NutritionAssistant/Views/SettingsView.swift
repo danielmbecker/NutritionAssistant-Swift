@@ -42,6 +42,14 @@ struct SettingsView: View {
                     }
                 }
                 .tint(.accentColor)
+                
+                Toggle("HealthKit Data Reflects Selected Time", isOn: Binding(
+                    get: { userSettingsList.first?.healthKitCustomDayWindow ?? false },
+                    set: { newValue in
+                        userSettingsList.first?.healthKitCustomDayWindow = newValue
+                        try? modelContext.save()
+                    }
+                ))
             }
             
             Section(header: Text("UI Preferences")) {
@@ -67,9 +75,14 @@ struct SettingsView: View {
                     carbInput: $bindableViewModel.carbInput,
                     proteinInput: $bindableViewModel.proteinInput,
                     
+                    fatLock: $bindableViewModel.fatLock,
+                    carbLock: $bindableViewModel.carbLock,
+                    proteinLock: $bindableViewModel.proteinLock,
+                    
                     // We use the standard variable for the function calls
                     onSaveCalories: { viewModel.saveCalorieAndMacros(settingsList: userSettingsList) },
-                    onSaveMacros: { viewModel.saveMacroGoal(settingsList: userSettingsList) }
+                    onSaveMacros: { viewModel.saveMacroGoal(settingsList: userSettingsList) },
+                    onLockChanged: { viewModel.saveLocks(settingsList: userSettingsList) }
                 )
                 
                 Divider()
@@ -415,6 +428,7 @@ struct SettingsView: View {
             var sugarGoalCol = Column<Int>(name: "Added Sugar Goal", capacity: allSettings.count)
             var sugarTypeCol = Column<String>(name: "Added Sugar Goal Type", capacity: allSettings.count)
             var dayStartHourCol = Column<Int>(name: "Day Start Hour", capacity: allSettings.count)
+            var hkWindowCol = Column<Bool>(name: "HealthKit Custom Window", capacity: allSettings.count)
             var colorHexCol = Column<String>(name: "Primary Color Hex", capacity: allSettings.count)
 
             for setting in allSettings {
@@ -435,6 +449,7 @@ struct SettingsView: View {
                 sugarGoalCol.append(setting.userAddedSugarGoal)
                 sugarTypeCol.append(setting.userAddedSugarGoalType.rawValue)
                 dayStartHourCol.append(setting.dayStartHour)
+                hkWindowCol.append(setting.healthKitCustomDayWindow)
                 colorHexCol.append(setting.userSelectedPrimaryColorHex)
             }
             
@@ -456,6 +471,7 @@ struct SettingsView: View {
             dataFrame.append(column: sugarGoalCol)
             dataFrame.append(column: sugarTypeCol)
             dataFrame.append(column: dayStartHourCol)
+            dataFrame.append(column: hkWindowCol)
             dataFrame.append(column: colorHexCol)
             
             let docURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -539,6 +555,12 @@ struct SettingsView: View {
                     currentSettings.userAddedSugarGoalType = extractGoalType(columnName: "Added Sugar Goal Type", fallback: currentSettings.userAddedSugarGoalType)
                     
                     currentSettings.dayStartHour = extractInt(columnName: "Day Start Hour", fallback: currentSettings.dayStartHour)
+                    
+                    if let hkBool = row["HealthKit Custom Window"] as? Bool {
+                        currentSettings.healthKitCustomDayWindow = hkBool
+                    } else if let hkStr = row["HealthKit Custom Window"] as? String, hkStr.lowercased() == "true" {
+                        currentSettings.healthKitCustomDayWindow = true
+                    }
                     
                     if let hex = row["Primary Color Hex"] as? String, !hex.isEmpty {
                         currentSettings.userSelectedPrimaryColorHex = hex

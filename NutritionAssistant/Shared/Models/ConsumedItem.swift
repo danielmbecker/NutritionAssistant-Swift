@@ -62,4 +62,10 @@ extension Date {
         // Returns exactly midnight of that logical day to make searching super easy
         return calendar.startOfDay(for: adjustedDate)
     }
+    
+    // NEW: Calculates the exact starting Date (e.g. 4:00 AM) of the current logical day
+    func healthKitWindowStart(startHour: Int) -> Date {
+        let logicalMidnight = self.logicalDay(startHour: startHour)
+        return Calendar.current.date(bySettingHour: startHour, minute: 0, second: 0, of: logicalMidnight) ?? logicalMidnight
+    }
 }

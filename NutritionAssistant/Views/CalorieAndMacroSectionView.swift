@@ -1,25 +1,22 @@
 import SwiftUI
 
-enum MacroLock {
-    case none, percent, grams
-}
-
 struct CalorieAndMacroSectionView: View {
     @Binding var calorieInput: Int?
     @Binding var fatInput: Int?
     @Binding var carbInput: Int?
     @Binding var proteinInput: Int?
     
+    @Binding var fatLock: MacroLock
+    @Binding var carbLock: MacroLock
+    @Binding var proteinLock: MacroLock
+    
     let onSaveCalories: () -> Void
     let onSaveMacros: () -> Void
+    let onLockChanged: () -> Void
     
     @State private var fatPercentInput: Int?
     @State private var carbPercentInput: Int?
     @State private var proteinPercentInput: Int?
-    
-    @State private var fatLock: MacroLock = .none
-    @State private var carbLock: MacroLock = .none
-    @State private var proteinLock: MacroLock = .none
     
     // MARK: - Computed Math
     
@@ -157,7 +154,7 @@ struct CalorieAndMacroSectionView: View {
         }
         .padding(.vertical, 4)
         
-        Divider()
+        
         
         // 2. Macros
         VStack(alignment: .leading, spacing: 12) {
@@ -221,6 +218,7 @@ struct CalorieAndMacroSectionView: View {
             Spacer()
             Button(action: {
                 lockState.wrappedValue = lockState.wrappedValue == .percent ? .none : .percent
+                onLockChanged()
             }) {
                 Image(systemName: lockState.wrappedValue == .percent ? "lock.fill" : "lock.open")
                     .foregroundColor(lockState.wrappedValue == .percent ? .accentColor : .gray.opacity(0.4))
@@ -230,6 +228,7 @@ struct CalorieAndMacroSectionView: View {
             SuffixTextField(value: gramBinding, suffix: "g")
             Button(action: {
                 lockState.wrappedValue = lockState.wrappedValue == .grams ? .none : .grams
+                onLockChanged()
             }) {
                 Image(systemName: lockState.wrappedValue == .grams ? "lock.fill" : "lock.open")
                     .foregroundColor(lockState.wrappedValue == .grams ? .accentColor : .gray.opacity(0.4))
