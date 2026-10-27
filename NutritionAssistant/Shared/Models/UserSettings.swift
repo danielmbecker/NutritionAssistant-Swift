@@ -1,6 +1,26 @@
 import Foundation
 import SwiftData
 
+enum CaloricContextType: String, Codable, CaseIterable {
+    case bmr = "BMR"
+    case tdeeYesterday = "TDEE Yesterday"
+    case tdeeLastWeek = "TDEE Last Week"
+    case tdeeLastMonth = "TDEE Last Month"
+    case tdeeLast90Days = "TDEE Last 90 days"
+    case custom = "Custom"
+}
+
+enum WeightIntention: String, Codable {
+    case lose = "Lose"
+    case maintain = "Maintain"
+    case gain = "Gain"
+}
+
+enum WeightIntentionUnit: String, Codable {
+    case calories = "Calories"
+    case pounds = "Pounds"
+}
+
 enum MacroLock: String, Codable {
     case none = "none"
     case percent = "percent"
@@ -49,6 +69,14 @@ final class UserSettings {
     var carbLock: MacroLock
     var proteinLock: MacroLock
     
+    // NEW: Caloric Goal Context and Effect
+    var caloricContextType: CaloricContextType
+    var customCaloricBase: Int
+    
+    var weightIntention: WeightIntention?
+    var weightIntentionUnit: WeightIntentionUnit
+    var weightIntentionValue: Double
+    
     var userSelectedPrimaryColorHex: String
     
     // Initializer with beautifully balanced mathematical defaults!
@@ -84,6 +112,12 @@ final class UserSettings {
         carbLock: MacroLock = .none,
         proteinLock: MacroLock = .none,
         
+        caloricContextType: CaloricContextType = .custom,
+        customCaloricBase: Int = 2000,
+        weightIntention: WeightIntention? = nil,
+        weightIntentionUnit: WeightIntentionUnit = .calories,
+        weightIntentionValue: Double = 0.0,
+        
         userSelectedPrimaryColorHex: String = "#007AFF"
     ) {
         self.userCaloriesGoal = userCaloriesGoal
@@ -116,6 +150,12 @@ final class UserSettings {
         self.fatLock = fatLock
         self.carbLock = carbLock
         self.proteinLock = proteinLock
+        
+        self.caloricContextType = caloricContextType
+        self.customCaloricBase = customCaloricBase
+        self.weightIntention = weightIntention
+        self.weightIntentionUnit = weightIntentionUnit
+        self.weightIntentionValue = weightIntentionValue
         
         self.userSelectedPrimaryColorHex = userSelectedPrimaryColorHex
     }

@@ -14,6 +14,13 @@ class SettingsViewModel {
     var carbLock: MacroLock = .none
     var proteinLock: MacroLock = .none
     
+    // Caloric Goal State Variables
+    var caloricContextType: CaloricContextType = .custom
+    var customCaloricBase: Int = 2000
+    var weightIntention: WeightIntention? = nil
+    var weightIntentionUnit: WeightIntentionUnit = .calories
+    var weightIntentionValue: Double = 0.0
+    
     // Micronutrient State Variables
     var satFatInput: Int?
     var transFatInput: Int?
@@ -23,6 +30,15 @@ class SettingsViewModel {
     // MARK: - Initialization Logic
     
     func initializeSettingsIfNeeded(settingsList: [UserSettings], context: ModelContext) {
+        // Deduplicate: If there are multiple UserSettings due to a previous bug or lack of constraints,
+        // delete all but the first one to prevent `@Query` array flip-flopping on changes.
+        if settingsList.count > 1 {
+            for i in 1..<settingsList.count {
+                context.delete(settingsList[i])
+            }
+            try? context.save()
+        }
+        
         if settingsList.isEmpty {
             let defaultSettings = UserSettings()
             context.insert(defaultSettings)
@@ -46,6 +62,12 @@ class SettingsViewModel {
         fatLock = settings.fatLock
         carbLock = settings.carbLock
         proteinLock = settings.proteinLock
+        
+        caloricContextType = settings.caloricContextType
+        customCaloricBase = settings.customCaloricBase
+        weightIntention = settings.weightIntention
+        weightIntentionUnit = settings.weightIntentionUnit
+        weightIntentionValue = settings.weightIntentionValue
     }
     
     // MARK: - Database Save Actions
@@ -81,6 +103,16 @@ class SettingsViewModel {
             currentSettings.carbLock = carbLock
             currentSettings.proteinLock = proteinLock
             // SwiftData auto-saves on runloop end, but we can rely on modelContext if needed.
+        }
+    }
+    
+    func saveGoalSettings(settingsList: [UserSettings]) {
+        if let currentSettings = settingsList.first {
+            currentSettings.caloricContextType = caloricContextType
+            currentSettings.customCaloricBase = customCaloricBase
+            currentSettings.weightIntention = weightIntention
+            currentSettings.weightIntentionUnit = weightIntentionUnit
+            currentSettings.weightIntentionValue = weightIntentionValue
         }
     }
     

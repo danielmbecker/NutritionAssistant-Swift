@@ -16,6 +16,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		651BF5EF307C7A1E0020EBAF /* Docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Docs;
+			sourceTree = "<group>";
+		};
 		65E70A932FBEBF4300C69245 /* NutritionAssistant */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = NutritionAssistant;
@@ -37,6 +42,7 @@
 		65E70A882FBEBF4300C69245 = {
 			isa = PBXGroup;
 			children = (
+				651BF5EF307C7A1E0020EBAF /* Docs */,
 				658500323025599900DFB208 /* Notes.swift */,
 				65E70A932FBEBF4300C69245 /* NutritionAssistant */,
 				65E70A922FBEBF4300C69245 /* Products */,
@@ -67,6 +73,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				651BF5EF307C7A1E0020EBAF /* Docs */,
 				65E70A932FBEBF4300C69245 /* NutritionAssistant */,
 			);
 			name = NutritionAssistant;

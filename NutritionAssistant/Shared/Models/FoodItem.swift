@@ -32,22 +32,22 @@ struct FoodCategoryList {
     
     static func displayOrder(for category: String) -> Int {
         switch category {
-        case "Supplements": return 1
-        case "Seafood": return 2
-        case "Dairy": return 3
+        case "Supplements": return 9
+        case "Seafood": return 16
+        case "Dairy": return 5
         case "Eggs": return 4
-        case "Breads & Grains": return 5
-        case "Nuts & Seeds": return 6
-        case "Vegetables": return 7
-        case "Fruits": return 8
-        case "Drinks": return 9
-        case "Sugars": return 10
-        case "Sweet Snacks": return 11
-        case "Oils": return 12
-        case "Spreads & Sauces": return 13
-        case "Prepared Foods": return 14
-        case "Meats": return 15
-        case "Salty Snacks": return 16
+        case "Breads & Grains": return 7
+        case "Nuts & Seeds": return 2
+        case "Vegetables": return 3
+        case "Fruits": return 1
+        case "Drinks": return 11
+        case "Sugars": return 12
+        case "Sweet Snacks": return 15
+        case "Oils": return 6
+        case "Spreads & Sauces": return 8
+        case "Prepared Foods": return 13
+        case "Meats": return 10
+        case "Salty Snacks": return 14
         default: return 999
         }
     }

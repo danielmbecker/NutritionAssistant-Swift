@@ -10,13 +10,26 @@ struct CalorieAndMacroSectionView: View {
     @Binding var carbLock: MacroLock
     @Binding var proteinLock: MacroLock
     
+    @Binding var caloricContextType: CaloricContextType
+    @Binding var customCaloricBase: Int
+    @Binding var weightIntention: WeightIntention?
+    @Binding var weightIntentionUnit: WeightIntentionUnit
+    @Binding var weightIntentionValue: Double
+    
     let onSaveCalories: () -> Void
     let onSaveMacros: () -> Void
     let onLockChanged: () -> Void
+    let onGoalSettingsChanged: () -> Void
     
     @State private var fatPercentInput: Int?
     @State private var carbPercentInput: Int?
     @State private var proteinPercentInput: Int?
+    
+    @State private var showLockLimitAlert = false
+    @State private var showCustomRadial = false
+    @State private var showIntentionRadial = false
+    
+    var healthKitManager = HealthKitManager.shared
     
     // MARK: - Computed Math
     
@@ -127,32 +140,183 @@ struct CalorieAndMacroSectionView: View {
         )
     }
     
+    // MARK: - Goal Math
+    
+    private var computedGoalEffectNumber: Double {
+        if weightIntention == .maintain || weightIntention == nil { return 0 }
+        return weightIntentionUnit == .pounds ? (weightIntentionValue * 3500.0) : weightIntentionValue
+    }
+    
+    private func computeDailyTarget() {
+        var base: Double = 0
+        switch caloricContextType {
+        case .bmr: base = healthKitManager.latestBMR
+        case .tdeeYesterday: base = healthKitManager.tdeeYesterday
+        case .tdeeLastWeek: base = healthKitManager.tdeeLastWeekAverage
+        case .tdeeLastMonth: base = healthKitManager.tdeeLastMonthAverage
+        case .tdeeLast90Days: base = healthKitManager.tdeeLast90DaysAverage
+        case .custom: base = Double(customCaloricBase)
+        }
+        
+        let dailyDelta = computedGoalEffectNumber / 7.0
+        var delta: Double = 0
+        if weightIntention == .lose { delta = -dailyDelta }
+        else if weightIntention == .gain { delta = dailyDelta }
+        
+        let newGoal = Int(round(base + delta))
+        if calorieInput != newGoal {
+            calorieInput = newGoal
+            handleCalorieChange(newCalories: newGoal)
+            onSaveCalories()
+        }
+    }
+    
     // MARK: - View Body
     
     @ViewBuilder
     var body: some View {
-        // 1. Calories
-        HStack(spacing: 12) {
-            Text("Calories")
-                .font(.headline)
-            Spacer()
-            // Standard binding directly attached here
-            TextField("Goal", value: $calorieInput, format: .number)
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.center)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 85)
+        // 1. Caloric Target Overhaul
+        VStack(spacing: 20) {
             
-            AnimatedSaveButton(action: {
-                if let current = calorieInput {
-                    calorieInput = min(max(current, 0), 10000)
+            // Context Selector
+            VStack(spacing: 8) {
+                HStack {
+                    contextBox(title: "BMR", value: healthKitManager.latestBMR, type: .bmr)
+                    contextBox(title: "TDEE Yesterday", value: healthKitManager.tdeeYesterday, type: .tdeeYesterday)
+                    contextBox(title: "TDEE Last Week", value: healthKitManager.tdeeLastWeekAverage, type: .tdeeLastWeek)
                 }
-                handleCalorieChange(newCalories: calorieInput)
-                onSaveCalories()
-            })
-            .disabled(areAllMacrosLocked)
+                HStack {
+                    contextBox(title: "TDEE Last Month", value: healthKitManager.tdeeLastMonthAverage, type: .tdeeLastMonth)
+                    contextBox(title: "TDEE Last 90 days", value: healthKitManager.tdeeLast90DaysAverage, type: .tdeeLast90Days)
+                    contextBox(title: "Custom", value: Double(customCaloricBase), type: .custom)
+                }
+            }
+            
+            // Weight Intention Section
+            VStack(spacing: 12) {
+                let intentionProxy = Binding<WeightIntention>(
+                    get: { weightIntention ?? .maintain },
+                    set: { newValue in
+                        weightIntention = newValue
+                        if newValue == .maintain {
+                            weightIntentionValue = 0
+                        }
+                        onGoalSettingsChanged()
+                        computeDailyTarget()
+                    }
+                )
+                
+                Picker("Intention", selection: intentionProxy) {
+                    Text("Lose").tag(WeightIntention.lose)
+                    Text("Maintain").tag(WeightIntention.maintain)
+                    Text("Gain").tag(WeightIntention.gain)
+                }
+                .pickerStyle(.segmented)
+                
+                if intentionProxy.wrappedValue != .maintain {
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            if weightIntentionUnit != .calories {
+                                weightIntentionUnit = .calories
+                                if weightIntentionValue > 0 {
+                                    weightIntentionValue = weightIntentionValue * 3500.0
+                                }
+                                onGoalSettingsChanged()
+                                computeDailyTarget()
+                            }
+                        }) {
+                            Image(systemName: "flame.fill")
+                                .foregroundColor(weightIntentionUnit == .calories ? .accentColor : .gray)
+                                .padding(4)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            if weightIntentionUnit != .pounds {
+                                weightIntentionUnit = .pounds
+                                if weightIntentionValue > 0 {
+                                    weightIntentionValue = max(0.1, round((weightIntentionValue / 3500.0) * 10) / 10)
+                                }
+                                onGoalSettingsChanged()
+                                computeDailyTarget()
+                            }
+                        }) {
+                            Image(systemName: "scalemass.fill")
+                                .foregroundColor(weightIntentionUnit == .pounds ? .accentColor : .gray)
+                                .padding(4)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        
+                        if(weightIntentionUnit == .calories){
+                            Text("\(computedGoalEffectNumber, specifier: "%.0f") Calories/wk")
+                                .font(.subheadline)
+                        }else if(weightIntentionUnit == .pounds){
+                            Text("\(computedGoalEffectNumber / 3500, specifier: "%.1f") Pounds/wk")
+                                .font(.subheadline)
+                        }
+                        
+                        Spacer()
+                        
+                        Button("Set Goal") {
+                            showIntentionRadial = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+            
+            // Computed Target
+            HStack {
+                Text("Daily Calorie Target: ")
+                    .font(.headline)
+                Spacer()
+                Text("\(calorieInput ?? 0)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .onAppear { computeDailyTarget() }
+        .onChange(of: healthKitManager.latestBMR) { computeDailyTarget() }
+        .onChange(of: healthKitManager.tdeeYesterday) { computeDailyTarget() }
+        .onChange(of: healthKitManager.tdeeLastWeekAverage) { computeDailyTarget() }
+        .onChange(of: healthKitManager.tdeeLastMonthAverage) { computeDailyTarget() }
+        .onChange(of: healthKitManager.tdeeLast90DaysAverage) { computeDailyTarget() }
+        .sheet(isPresented: $showCustomRadial) {
+            RadialHalfSheetSelector(
+                title: "Custom Base",
+                subtitle: "Set a custom daily base",
+                unit: "kcal",
+                value: Binding(get: { Double(customCaloricBase) }, set: { customCaloricBase = Int($0) }),
+                baseValue: 2000,
+                onDismiss: { showCustomRadial = false },
+                onSave: {
+                    showCustomRadial = false
+                    onGoalSettingsChanged()
+                    computeDailyTarget()
+                }
+            )
+            .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showIntentionRadial) {
+            RadialHalfSheetSelector(
+                title: "Set Goal",
+                subtitle: weightIntentionUnit == .calories ? "Calories per week" : "Pounds per week",
+                unit: weightIntentionUnit == .calories ? "kcal" : "lbs",
+                value: $weightIntentionValue,
+                baseValue: weightIntentionUnit == .calories ? 500 : 0,
+                onDismiss: { showIntentionRadial = false },
+                onSave: {
+                    showIntentionRadial = false
+                    onGoalSettingsChanged()
+                    computeDailyTarget()
+                }
+            )
+            .presentationDetents([.medium])
+        }
         
         
         
@@ -179,9 +343,17 @@ struct CalorieAndMacroSectionView: View {
                 }
             }
             
-            macroRow(title: "Fat", lockState: $fatLock, percentBinding: fatPercentBinding, gramBinding: fatGramBinding)
-            macroRow(title: "Carbs", lockState: $carbLock, percentBinding: carbPercentBinding, gramBinding: carbGramBinding)
-            macroRow(title: "Protein", lockState: $proteinLock, percentBinding: proteinPercentBinding, gramBinding: proteinGramBinding)
+            macroRow(title: "Fat", lockState: fatLock, percentBinding: fatPercentBinding, gramBinding: fatGramBinding,
+                     onTogglePercent: { handleLockToggle(for: .fat, newMode: fatLock == .percent ? .none : .percent) },
+                     onToggleGrams: { handleLockToggle(for: .fat, newMode: fatLock == .grams ? .none : .grams) })
+            
+            macroRow(title: "Carbs", lockState: carbLock, percentBinding: carbPercentBinding, gramBinding: carbGramBinding,
+                     onTogglePercent: { handleLockToggle(for: .carb, newMode: carbLock == .percent ? .none : .percent) },
+                     onToggleGrams: { handleLockToggle(for: .carb, newMode: carbLock == .grams ? .none : .grams) })
+            
+            macroRow(title: "Protein", lockState: proteinLock, percentBinding: proteinPercentBinding, gramBinding: proteinGramBinding,
+                     onTogglePercent: { handleLockToggle(for: .protein, newMode: proteinLock == .percent ? .none : .percent) },
+                     onToggleGrams: { handleLockToggle(for: .protein, newMode: proteinLock == .grams ? .none : .grams) })
             
             HStack {
                 VStack(alignment: .leading) {
@@ -206,35 +378,99 @@ struct CalorieAndMacroSectionView: View {
         }
         .padding(.vertical, 4)
         .onAppear { updatePercentsFromGrams(calories: calorieInput) }
+        .alert("Lock Limit Reached", isPresented: $showLockLimitAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Only 2 macros can be locked at once. Please unlock one before locking another to ensure auto-balancing can function properly.")
+        }
+    }
+    
+    // MARK: - Lock Safety Logic
+    
+    enum MacroType { case fat, carb, protein }
+    
+    private func handleLockToggle(for macro: MacroType, newMode: MacroLock) {
+        if newMode != .none {
+            switch macro {
+            case .fat:
+                if carbLock != .none && proteinLock != .none {
+                    showLockLimitAlert = true
+                    return
+                }
+                fatLock = newMode
+            case .carb:
+                if fatLock != .none && proteinLock != .none {
+                    showLockLimitAlert = true
+                    return
+                }
+                carbLock = newMode
+            case .protein:
+                if fatLock != .none && carbLock != .none {
+                    showLockLimitAlert = true
+                    return
+                }
+                proteinLock = newMode
+            }
+        } else {
+            switch macro {
+            case .fat: fatLock = .none
+            case .carb: carbLock = .none
+            case .protein: proteinLock = .none
+            }
+        }
+        onLockChanged()
     }
     
     // MARK: - Subviews
     
     @ViewBuilder
-    private func macroRow(title: String, lockState: Binding<MacroLock>, percentBinding: Binding<Int?>, gramBinding: Binding<Int?>) -> some View {
+    private func macroRow(title: String, lockState: MacroLock, percentBinding: Binding<Int?>, gramBinding: Binding<Int?>, onTogglePercent: @escaping () -> Void, onToggleGrams: @escaping () -> Void) -> some View {
         HStack(spacing: 6) {
             Text(title)
                 .font(.headline)
             Spacer()
-            Button(action: {
-                lockState.wrappedValue = lockState.wrappedValue == .percent ? .none : .percent
-                onLockChanged()
-            }) {
-                Image(systemName: lockState.wrappedValue == .percent ? "lock.fill" : "lock.open")
-                    .foregroundColor(lockState.wrappedValue == .percent ? .accentColor : .gray.opacity(0.4))
+            Button(action: onTogglePercent) {
+                Image(systemName: lockState == .percent ? "lock.fill" : "lock.open")
+                    .foregroundColor(lockState == .percent ? .accentColor : .gray.opacity(0.4))
             }
             .buttonStyle(.plain)
             SuffixTextField(value: percentBinding, suffix: "%")
             SuffixTextField(value: gramBinding, suffix: "g")
-            Button(action: {
-                lockState.wrappedValue = lockState.wrappedValue == .grams ? .none : .grams
-                onLockChanged()
-            }) {
-                Image(systemName: lockState.wrappedValue == .grams ? "lock.fill" : "lock.open")
-                    .foregroundColor(lockState.wrappedValue == .grams ? .accentColor : .gray.opacity(0.4))
+            Button(action: onToggleGrams) {
+                Image(systemName: lockState == .grams ? "lock.fill" : "lock.open")
+                    .foregroundColor(lockState == .grams ? .accentColor : .gray.opacity(0.4))
             }
             .buttonStyle(.plain)
         }
+    }
+    
+    @ViewBuilder
+    private func contextBox(title: String, value: Double, type: CaloricContextType) -> some View {
+        Button(action: {
+            caloricContextType = type
+            onGoalSettingsChanged()
+            computeDailyTarget()
+            
+            if type == .custom {
+                showCustomRadial = true
+            }
+        }) {
+            VStack(spacing: 4) {
+                Text(type == .custom ? "\(Int(value))" : String(format: "%.0f", value))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(caloricContextType == type ? .white : .primary)
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(caloricContextType == type ? .white : .secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(caloricContextType == type ? Color.accentColor : Color.gray.opacity(0.1))
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Smart Algorithms

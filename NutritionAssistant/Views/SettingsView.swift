@@ -43,7 +43,7 @@ struct SettingsView: View {
                 }
                 .tint(.accentColor)
                 
-                Toggle("HealthKit Data Reflects Selected Time", isOn: Binding(
+                Toggle("Apply to Health Kit Data", isOn: Binding(
                     get: { userSettingsList.first?.healthKitCustomDayWindow ?? false },
                     set: { newValue in
                         userSettingsList.first?.healthKitCustomDayWindow = newValue
@@ -79,10 +79,17 @@ struct SettingsView: View {
                     carbLock: $bindableViewModel.carbLock,
                     proteinLock: $bindableViewModel.proteinLock,
                     
+                    caloricContextType: $bindableViewModel.caloricContextType,
+                    customCaloricBase: $bindableViewModel.customCaloricBase,
+                    weightIntention: $bindableViewModel.weightIntention,
+                    weightIntentionUnit: $bindableViewModel.weightIntentionUnit,
+                    weightIntentionValue: $bindableViewModel.weightIntentionValue,
+                    
                     // We use the standard variable for the function calls
                     onSaveCalories: { viewModel.saveCalorieAndMacros(settingsList: userSettingsList) },
                     onSaveMacros: { viewModel.saveMacroGoal(settingsList: userSettingsList) },
-                    onLockChanged: { viewModel.saveLocks(settingsList: userSettingsList) }
+                    onLockChanged: { viewModel.saveLocks(settingsList: userSettingsList) },
+                    onGoalSettingsChanged: { viewModel.saveGoalSettings(settingsList: userSettingsList) }
                 )
                 
                 Divider()

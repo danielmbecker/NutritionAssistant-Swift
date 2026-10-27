@@ -41,6 +41,7 @@ struct ContentView: View {
         )
     }
     @Query private var userSettingsList: [UserSettings]
+    @Environment(\.modelContext) private var modelContext
     
     var primaryColor: Color {
         Color(hex: userSettingsList.first?.userSelectedPrimaryColorHex ?? "#007AFF")
@@ -84,6 +85,18 @@ struct ContentView: View {
         }
         .tint(primaryColor)
         .accentColor(primaryColor)
+        .onAppear {
+            if userSettingsList.count > 1 {
+                for i in 1..<userSettingsList.count {
+                    modelContext.delete(userSettingsList[i])
+                }
+                try? modelContext.save()
+            } else if userSettingsList.isEmpty {
+                let defaultSettings = UserSettings()
+                modelContext.insert(defaultSettings)
+                try? modelContext.save()
+            }
+        }
     }
 }
 
