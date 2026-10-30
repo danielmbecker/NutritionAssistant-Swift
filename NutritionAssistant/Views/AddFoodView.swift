@@ -27,6 +27,9 @@ struct AddFoodView: View {
     @State private var showingAddCategoryAlert = false
     @State private var newCategoryName = ""
     @State private var foodVariationGroup: String = ""
+    @State private var householdMeasurement: String?
+    @State private var householdAmount: Double?
+    @State private var pendingAdjustment: HouseholdMeasurementAdjustment?
 
     var existingFood: FoodItem?
 
@@ -49,12 +52,15 @@ struct AddFoodView: View {
             _addedSugar = State(initialValue: food.addedSugar)
             _category = State(initialValue: food.category)
             _foodVariationGroup = State(initialValue: food.foodVariationGroup ?? "")
+            _householdMeasurement = State(initialValue: food.commonHouseholdMeasurement)
+            _householdAmount = State(initialValue: food.commonHouseholdMeasurementAmount)
         }
     }
 
     private var isFormValid: Bool {
         !brandName.isEmpty && !name.isEmpty && servingSize != nil && calories != nil
             && category != nil
+            && FoodItem.isValidHouseholdPair(name: householdMeasurement, amount: householdAmount)
     }
 
     private var calculatedCalories: String {
@@ -190,6 +196,8 @@ struct AddFoodView: View {
                                 }
                             }) {
                                 Text(foodCategory)
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                                     .fontWeight(.medium)
                                     .padding(.vertical, 10)
                                     .padding(.horizontal, 16)
@@ -207,6 +215,8 @@ struct AddFoodView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "plus")
                                 Text("New Category")
+                                    .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
                             }
                             .fontWeight(.medium)
                             .padding(.vertical, 10)
@@ -235,6 +245,9 @@ struct AddFoodView: View {
                         .frame(width: 60)
                         .keyboardType(.decimalPad)
                 }
+
+                // Household measure is independent of the serving size/unit above.
+                HouseholdMeasurementRow(measurement: $householdMeasurement, amount: $householdAmount)
 
                 HStack {
                     Text("Calories")
@@ -325,7 +338,7 @@ struct AddFoodView: View {
                 }
 
                 Button("Save to Database") {
-                    addItem()
+                    attemptSave()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!isFormValid)
@@ -334,6 +347,25 @@ struct AddFoodView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
+        .overlay {
+            if let adjustment = pendingAdjustment {
+                HouseholdAdjustmentPromptView(
+                    adjustment: adjustment,
+                    onUpdate: {
+                        pendingAdjustment = nil
+                        addItem(householdAmountOverride: adjustment.newAmount)
+                    },
+                    onKeep: {
+                        pendingAdjustment = nil
+                        addItem()
+                    },
+                    onDismiss: {
+                        withAnimation { pendingAdjustment = nil }
+                    }
+                )
+            }
+        }
+        .animation(.easeInOut(duration: 0.15), value: pendingAdjustment?.id)
         .alert("New Category", isPresented: $showingAddCategoryAlert) {
             TextField("Category Name", text: $newCategoryName)
             Button("Cancel", role: .cancel) { newCategoryName = "" }
@@ -349,7 +381,28 @@ struct AddFoodView: View {
         }
     }
 
-    private func addItem() {
+    /// Edit mode only: if the serving size changed on a food with a household measure, propose a proportional
+    /// household update first. Otherwise save immediately.
+    private func attemptSave() {
+        if let existing = existingFood,
+           let adjustment = HouseholdMeasurementAdjuster.adjustment(
+               originalSize: existing.servingSize,
+               originalUnit: existing.servingUnit,
+               originalMeasurement: existing.commonHouseholdMeasurement,
+               originalAmount: existing.commonHouseholdMeasurementAmount,
+               currentSize: servingSize,
+               currentUnit: servingUnit,
+               currentMeasurement: householdMeasurement,
+               currentAmount: householdAmount
+           ) {
+            withAnimation { pendingAdjustment = adjustment }
+        } else {
+            addItem()
+        }
+    }
+
+    private func addItem(householdAmountOverride: Double? = nil) {
+        let amountToSave = householdAmountOverride ?? householdAmount
         guard let selectedCategory = category else { return }
         withAnimation {
             if let existing = existingFood {
@@ -368,6 +421,8 @@ struct AddFoodView: View {
                 existing.addedSugar = addedSugar ?? 0.0
                 existing.category = selectedCategory
                 existing.foodVariationGroup = foodVariationGroup.isEmpty ? nil : foodVariationGroup
+                existing.commonHouseholdMeasurement = householdMeasurement
+                existing.commonHouseholdMeasurementAmount = amountToSave
             } else {
                 let newItem = FoodItem(
                     timestamp: Date(),
@@ -385,7 +440,9 @@ struct AddFoodView: View {
                     dietaryFiber: dietaryFiber ?? 0.0,
                     addedSugar: addedSugar ?? 0.0,
                     category: selectedCategory,
-                    foodVariationGroup: foodVariationGroup.isEmpty ? nil : foodVariationGroup
+                    foodVariationGroup: foodVariationGroup.isEmpty ? nil : foodVariationGroup,
+                    commonHouseholdMeasurement: householdMeasurement,
+                    commonHouseholdMeasurementAmount: amountToSave
                 )
                 modelContext.insert(newItem)
             }
@@ -396,5 +453,5 @@ struct AddFoodView: View {
 
 #Preview {
     AddFoodView()
-        .modelContainer(for: [FoodItem.self], inMemory: true)
+        .modelContainer(for: [FoodItem.self, UserFoodCategory.self, UserMeasurementUnit.self], inMemory: true)
 }

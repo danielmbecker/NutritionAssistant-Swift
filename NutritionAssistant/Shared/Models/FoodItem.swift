@@ -2,10 +2,13 @@ import Foundation
 import SwiftData
 
 struct FoodCategoryList {
+    /// Fallback category for imported foods whose CSV row has no category.
+    static let importedCategory = "Imported Foods"
+    
     static let defaultCategories = [
         "Supplements", "Meats", "Dairy", "Seafood", "Eggs", "Breads & Grains", 
         "Nuts & Seeds", "Vegetables", "Fruits", "Drinks", "Sugars", 
-        "Sweet Snacks", "Salty Snacks", "Oils", "Spreads & Sauces", "Prepared Foods"
+        "Sweet Snacks", "Salty Snacks", "Oils", "Spreads & Sauces", "Prepared Foods", "Imported Foods"
     ]
     
     static func displayName(for category: String) -> String {
@@ -26,6 +29,7 @@ struct FoodCategoryList {
         case "Oils": return "Oil"
         case "Spreads & Sauces": return "Spreads/Sauces/Condiments"
         case "Prepared Foods": return "Prepared Food"
+        case "Imported Foods": return "Imported Foods"
         default: return category
         }
     }
@@ -48,6 +52,7 @@ struct FoodCategoryList {
         case "Prepared Foods": return 13
         case "Meats": return 10
         case "Salty Snacks": return 14
+        case "Imported Foods": return 17
         default: return 999
         }
     }
@@ -72,8 +77,13 @@ final class FoodItem {
     var addedSugar: Double
     var category: String
     var foodVariationGroup: String?
+    /// Household measure (singular canonical name, e.g. "scoop") equal to `commonHouseholdMeasurementAmount` per one serving.
+    /// Independent of `servingUnit`. Set together with the amount or both nil (see `hasValidHouseholdMeasurement`).
+    var commonHouseholdMeasurement: String?
+    /// Amount of `commonHouseholdMeasurement` that equals one serving (e.g. 2.0 tbsp).
+    var commonHouseholdMeasurementAmount: Double?
     
-    init(id: UUID = UUID(), timestamp: Date, brandName: String, name: String, processingLevel: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: String = "Prepared Foods", foodVariationGroup: String? = nil) {
+    init(id: UUID = UUID(), timestamp: Date, brandName: String, name: String, processingLevel: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: String = "Prepared Foods", foodVariationGroup: String? = nil, commonHouseholdMeasurement: String? = nil, commonHouseholdMeasurementAmount: Double? = nil) {
         self.id = id
         self.timestamp = timestamp
         self.brandName = brandName
@@ -91,6 +101,22 @@ final class FoodItem {
         self.addedSugar = addedSugar
         self.category = category
         self.foodVariationGroup = foodVariationGroup
+        self.commonHouseholdMeasurement = commonHouseholdMeasurement
+        self.commonHouseholdMeasurementAmount = commonHouseholdMeasurementAmount
+    }
+    
+    /// Both household fields set (amount > 0, non-empty name) or both nil.
+    var hasValidHouseholdMeasurement: Bool {
+        Self.isValidHouseholdPair(name: commonHouseholdMeasurement, amount: commonHouseholdMeasurementAmount)
+    }
+    
+    /// Shared pairing rule (used by the model and by form validation).
+    static func isValidHouseholdPair(name: String?, amount: Double?) -> Bool {
+        switch (name, amount) {
+        case (nil, nil): return true
+        case let (name?, amount?): return !name.trimmingCharacters(in: .whitespaces).isEmpty && amount > 0
+        default: return false
+        }
     }
 }
 

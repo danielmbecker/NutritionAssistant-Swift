@@ -12,8 +12,7 @@ struct SettingsView: View {
     
     @State private var viewModel = SettingsViewModel()
     
-    @State private var exportedCSVURL: URL? = nil
-    @State private var showShareSheet = false
+    @State private var shareItem: ShareItem? = nil
     @State private var showFileImporter = false
     @State private var showUserSettingsImporter = false
     @State private var showDeleteAllFoodsAlert = false
@@ -218,10 +217,8 @@ struct SettingsView: View {
         .onAppear {
             viewModel.initializeSettingsIfNeeded(settingsList: userSettingsList, context: modelContext)
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let url = exportedCSVURL {
-                ActivityViewController(activityItems: [url])
-            }
+        .sheet(item: $shareItem) { item in
+            ActivityViewController(activityItems: [item.url])
         }
         .alert("Delete All Food Items?", isPresented: $showDeleteAllFoodsAlert) {
             Button("Cancel", role: .cancel) { }
@@ -263,6 +260,8 @@ struct SettingsView: View {
             var fiberCol = Column<Double>(name: "Dietary Fiber", capacity: allItems.count)
             var sugarCol = Column<Double>(name: "Added Sugar", capacity: allItems.count)
             var categoryCol = Column<String>(name: "Category", capacity: allItems.count)
+            var householdCol = Column<String>(name: "Common Household Measurement", capacity: allItems.count)
+            var householdAmountCol = Column<Double>(name: "Common Household Measurement Amount", capacity: allItems.count)
 
             for item in allItems {
                 timestampCol.append(item.timestamp)
@@ -280,6 +279,10 @@ struct SettingsView: View {
                 fiberCol.append(item.dietaryFiber)
                 sugarCol.append(item.addedSugar)
                 categoryCol.append(item.category)
+                // Only export a valid pair; otherwise leave both cells empty
+                let validHousehold = item.hasValidHouseholdMeasurement
+                householdCol.append(validHousehold ? item.commonHouseholdMeasurement : nil)
+                householdAmountCol.append(validHousehold ? item.commonHouseholdMeasurementAmount : nil)
             }
             
             var dataFrame = DataFrame()
@@ -298,6 +301,8 @@ struct SettingsView: View {
             dataFrame.append(column: fiberCol)
             dataFrame.append(column: sugarCol)
             dataFrame.append(column: categoryCol)
+            dataFrame.append(column: householdCol)
+            dataFrame.append(column: householdAmountCol)
             
             let docURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             let fileURL = docURL.appendingPathComponent("NutriApp_FoodItems.csv")
@@ -305,8 +310,7 @@ struct SettingsView: View {
             let options = CSVWritingOptions(includesHeader: true, delimiter: ",")
             try dataFrame.writeCSV(to: fileURL, options: options)
             
-            self.exportedCSVURL = fileURL
-            self.showShareSheet = true
+            self.shareItem = ShareItem(url: fileURL)
             
             print("Successfully exported \(allItems.count) food items to \(fileURL.path)")
         } catch {
@@ -341,68 +345,19 @@ struct SettingsView: View {
                 let options = CSVReadingOptions(hasHeaderRow: true, delimiter: ",")
                 let dataFrame = try DataFrame(contentsOfCSVFile: url, options: options)
                 
-                var importCount = 0
-                for row in dataFrame.rows {
-                    // Try parsing "Name" as String, or fallback to empty
-                    let name = (row["Name"] as? String) ?? ""
-                    if name.isEmpty { continue } // Skip if no name
-                    
-                    func extractDouble(columnName: String, fallback: Double) -> Double {
-                        if let dVal = row[columnName] as? Double { return dVal }
-                        if let iVal = row[columnName] as? Int { return Double(iVal) }
-                        if let strVal = row[columnName] as? String, let parsed = Double(strVal) { return parsed }
-                        return fallback
-                    }
-                    
-                    // Parse Calories (could be inferred as Double or Int depending on the row data)
-                    let calories: Int
-                    if let calInt = row["Calories"] as? Int {
-                        calories = calInt
-                    } else if let calDouble = row["Calories"] as? Double {
-                        calories = Int(calDouble)
-                    } else if let strVal = row["Calories"] as? String, let calParsed = Int(strVal) {
-                        calories = calParsed
-                    } else {
-                        calories = 0
-                    }
-                    
-                    // Parse optional types
-                    let timestamp = (row["Timestamp"] as? Date) ?? Date()
-                    let brand = (row["Brand"] as? String) ?? ""
-                    let processing = (row["Processing Level"] as? String) ?? ""
-                    let servingSize = extractDouble(columnName: "Serving Size", fallback: 0.0)
-                    let servingUnit = (row["Serving Unit"] as? String) ?? ""
-                    let fat = extractDouble(columnName: "Fat", fallback: 0.0)
-                    let satFat = extractDouble(columnName: "Saturated Fat", fallback: 0.0)
-                    let transFat = extractDouble(columnName: "Trans Fat", fallback: 0.0)
-                    let protein = extractDouble(columnName: "Protein", fallback: 0.0)
-                    let carbs = extractDouble(columnName: "Carbs", fallback: 0.0)
-                    let fiber = extractDouble(columnName: "Dietary Fiber", fallback: 0.0)
-                    let sugar = extractDouble(columnName: "Added Sugar", fallback: 0.0)
-                    let categoryString = (row["Category"] as? String) ?? "Prepared Foods"
-                    let newItem = FoodItem(
-                        timestamp: timestamp,
-                        brandName: brand,
-                        name: name,
-                        processingLevel: processing,
-                        servingSize: servingSize,
-                        servingUnit: servingUnit,
-                        calories: calories,
-                        fat: fat,
-                        saturatedFat: satFat,
-                        transFat: transFat,
-                        protein: protein,
-                        carb: carbs,
-                        dietaryFiber: fiber,
-                        addedSugar: sugar,
-                        category: categoryString
-                    )
-                    
-                    modelContext.insert(newItem)
-                    importCount += 1
+                // All column reads are guarded (a missing column in TabularData is a fatal error).
+                let parsed = FoodCSVImporter.parse(dataFrame)
+                for item in parsed.items {
+                    modelContext.insert(item)
                 }
                 
-                print("Successfully imported \(importCount) food items from \(url.lastPathComponent)")
+                if !parsed.missingColumns.isEmpty {
+                    print("Food CSV import: columns not found, defaults used: \(parsed.missingColumns.joined(separator: ", "))")
+                }
+                if parsed.skippedRows > 0 {
+                    print("Food CSV import: skipped \(parsed.skippedRows) row(s) with no name")
+                }
+                print("Successfully imported \(parsed.items.count) food items from \(url.lastPathComponent)")
                 
             } catch {
                 print("Failed to parse CSV file: \(error.localizedDescription)")
@@ -487,8 +442,7 @@ struct SettingsView: View {
             let options = CSVWritingOptions(includesHeader: true, delimiter: ",")
             try dataFrame.writeCSV(to: fileURL, options: options)
             
-            self.exportedCSVURL = fileURL
-            self.showShareSheet = true
+            self.shareItem = ShareItem(url: fileURL)
             
             print("Successfully exported \(allSettings.count) user settings to \(fileURL.path)")
         } catch {
@@ -673,6 +627,13 @@ struct SettingsView: View {
 }
 
 // MARK: - ActivityViewController
+/// Identifiable wrapper so the share sheet is presented with `.sheet(item:)`, guaranteeing the URL exists
+/// when the sheet content is built (an `if let` inside `.sheet(isPresented:)` rendered an empty sheet).
+struct ShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
 struct ActivityViewController: UIViewControllerRepresentable {
     var activityItems: [Any]
     

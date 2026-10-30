@@ -56,6 +56,38 @@
 
 ### Entries
 
+### [2026-10-28] — AddFoodView household measurement inputs + test target
+**Date/Feature:** UI for `commonHouseholdMeasurement` / `commonHouseholdMeasurementAmount`; unit test target `NutritionAssistantTests` (Swift Testing, 16 tests).
+**Files Modified:**
+- `Views/HouseholdMeasurementRow.swift` (new) — amount field + grouped unit `Menu` + "Add New Measure…" (alert → `CompositeCategorySuggester` → confirmation dialog with suggested category first; nothing saved until user confirms). Duplicate/plural input selects the existing unit.
+- `Views/AddFoodView.swift` — state, load/save (create + edit), `isFormValid` uses `FoodItem.isValidHouseholdPair`, preview container includes new models.
+- `Shared/Models/FoodItem.swift` — static `isValidHouseholdPair` shared by model and form.
+**Build/Test Verification:** Xcode MCP build + RunAllTests (see chat for results).
+**Next Steps for the Next Developer:**
+- [x] Manual test pass: owner deemed testing sufficient on 2026-10-29. Remaining items (#13, #15, #16 re-test, serving-prompt and chip re-test) are **non-essential test remarks** — see `Notes.swift`.
+- [x] Fixed: food export share sheet now uses `.sheet(item:)` with `ShareItem`; chip text truncation fixed; serving-size household prompt added.
+- [ ] Future: styled "Suggested" tag / explicit-Cancel category sheet; prompt for serving UNIT changes (g↔oz conversion).
+- [ ] Optionally display household measure in Food Bank / Today via `MeasurementUnitFormatter`.
+- [ ] Update `CLAUDE.md` §2/§3.
+
+
+### [2026-10-28] — FoodItem household measurement (model layer)
+**Date/Feature:** Added `FoodItem.commonHouseholdMeasurement: String?` + `commonHouseholdMeasurementAmount: Double?` (amount of the household measure equal to one serving; independent of `servingUnit`).
+**Files Modified:**
+- `Shared/Models/FoodItem.swift` — 2 optional props, trailing defaulted init params, `hasValidHouseholdMeasurement` (both set & amount > 0, or both nil).
+- `Shared/Models/MeasurementUnitCatalog.swift` (new) — `MeasurementCategory` (7 fixed cases), built-in unit catalog (singular canonical), `MeasurementUnitFormatter` (display-time pluralization).
+- `Shared/Models/UserMeasurementUnit.swift` (new) — user-added units `@Model`; registered in `NutritionAssistantApp` schema (additive, lightweight migration).
+- `Shared/Models/MeasurementCategorySuggester.swift` (new) — Foundation Models (`@Generable`) suggester → NLEmbedding fallback → nil. Not yet wired to UI.
+- `Views/SettingsView.swift` — food CSV export/import of optional columns `Common Household Measurement`, `Common Household Measurement Amount` (import drops both unless a complete valid pair).
+- `Views/AddFoodView.swift` — TODO marker only.
+**New Cross-File Interactions / Side Effects:** Category of a unit is resolved at runtime (built-in ∪ `UserMeasurementUnit`), not stored on `FoodItem`. `CLAUDE.md` updated: no.
+**Build/Test Verification:** Xcode MCP build succeeded; formatter/catalog/validation checked via ExecuteSnippet. No test target exists in the project.
+**Next Steps for the Next Developer:**
+- [ ] **MUST DO:** AddFoodView inputs for the two household fields (grouped picker, "Add new unit…", suggested-category confirmation, amount field, edit-mode save). See `Notes.swift`.
+- [ ] Add a unit-test target and formalize the snippet checks.
+- [ ] Update `CLAUDE.md` §2/§3.
+
+
 ### [2026-10-18] — Initial architecture scan & context files
 **Date/Feature:** Created `CLAUDE.md` and `PROGRESS.md` (documentation only).
 **Files Modified:** `CLAUDE.md` (new), `PROGRESS.md` (new). No source code changed.
