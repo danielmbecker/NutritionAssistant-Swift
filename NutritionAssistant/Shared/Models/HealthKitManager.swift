@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import HealthKit
 import Observation
@@ -33,12 +34,14 @@ class HealthKitManager {
     func requestAuthorization(customWindowEnabled: Bool = false, startHour: Int = 0) {
         guard HKHealthStore.isHealthDataAvailable() else {
             print("HealthKit is not available on this device.")
+            requestCameraAuthorizationIfNeeded()
             return
         }
         
         guard let stepCount = HKQuantityType.quantityType(forIdentifier: .stepCount),
               let activeEnergy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
               let basalEnergy = HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned) else {
+            requestCameraAuthorizationIfNeeded()
             return
         }
         
@@ -54,7 +57,16 @@ class HealthKitManager {
                 } else if let error = error {
                     print("Error requesting HealthKit authorization: \(error.localizedDescription)")
                 }
+                self.requestCameraAuthorizationIfNeeded()
             }
+        }
+    }
+    
+    /// Requests camera access if not yet determined so the prompt sequences cleanly after HealthKit authorization on first launch.
+    func requestCameraAuthorizationIfNeeded() {
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined else { return }
+        Task {
+            _ = await AVCaptureDevice.requestAccess(for: .video)
         }
     }
     

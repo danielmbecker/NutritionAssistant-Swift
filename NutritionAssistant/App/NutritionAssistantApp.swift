@@ -7,12 +7,15 @@ struct NutritionAssistantApp: App {
         // We add UserSettings.self to the schema list!
         let schema = Schema([
             FoodItem.self,
+            ScannedFoodItem.self,
             ConsumedItem.self,
             UserSettings.self,
             RecipeItem.self,
             UserRecipeCategory.self,
             UserFoodCategory.self,
-            UserMeasurementUnit.self
+            UserMeasurementUnit.self,
+            ScannerTestItem.self,
+            ScannerTestRun.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

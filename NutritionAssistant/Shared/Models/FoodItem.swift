@@ -82,8 +82,10 @@ final class FoodItem {
     var commonHouseholdMeasurement: String?
     /// Amount of `commonHouseholdMeasurement` that equals one serving (e.g. 2.0 tbsp).
     var commonHouseholdMeasurementAmount: Double?
+    /// Set to `true` when scanned from a Dietary "Supplement Facts" panel (21 CFR § 101.36) and `false` when scanned from a "Nutrition Facts" panel (21 CFR § 101.9).
+    var isSupplement: Bool? = nil
     
-    init(id: UUID = UUID(), timestamp: Date, brandName: String, name: String, processingLevel: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: String = "Prepared Foods", foodVariationGroup: String? = nil, commonHouseholdMeasurement: String? = nil, commonHouseholdMeasurementAmount: Double? = nil) {
+    init(id: UUID = UUID(), timestamp: Date, brandName: String, name: String, processingLevel: String, servingSize: Double, servingUnit: String, calories: Int, fat: Double, saturatedFat: Double, transFat: Double, protein: Double, carb: Double, dietaryFiber: Double, addedSugar: Double, category: String = "Prepared Foods", foodVariationGroup: String? = nil, commonHouseholdMeasurement: String? = nil, commonHouseholdMeasurementAmount: Double? = nil, isSupplement: Bool? = nil) {
         self.id = id
         self.timestamp = timestamp
         self.brandName = brandName
@@ -103,6 +105,7 @@ final class FoodItem {
         self.foodVariationGroup = foodVariationGroup
         self.commonHouseholdMeasurement = commonHouseholdMeasurement
         self.commonHouseholdMeasurementAmount = commonHouseholdMeasurementAmount
+        self.isSupplement = isSupplement
     }
     
     /// Both household fields set (amount > 0, non-empty name) or both nil.

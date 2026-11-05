@@ -8,8 +8,10 @@ struct ContentView: View {
         case history
         case today
         case foodBank
+        case scannedFoodBank
         case recipeBank
         case addRecipe
+        case labelScanningTests
         case home
     }
     
@@ -68,6 +70,12 @@ struct ContentView: View {
                     Label("Food Bank", systemImage: "archivebox.fill")
                 }
                 .tag(Tab.foodBank)
+
+            ScannedFoodBankView()
+                .tabItem {
+                    Label("Scanned Bank", systemImage: "barcode.viewfinder")
+                }
+                .tag(Tab.scannedFoodBank)
                 
             RecipeBankView()
                 .tabItem {
@@ -81,6 +89,12 @@ struct ContentView: View {
                     Label("Add Recipe", systemImage: "plus.square.fill")
                 }
                 .tag(Tab.addRecipe)
+
+            LabelScanningTestsView()
+                .tabItem {
+                    Label("Scan Tests", systemImage: "viewfinder.rectangular")
+                }
+                .tag(Tab.labelScanningTests)
            
         }
         .tint(primaryColor)
@@ -102,6 +116,17 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [FoodItem.self, ConsumedItem.self, UserSettings.self, RecipeItem.self], inMemory: true)
+        .modelContainer(
+            for: [
+                FoodItem.self,
+                ScannedFoodItem.self,
+                ConsumedItem.self,
+                UserSettings.self,
+                RecipeItem.self,
+                ScannerTestItem.self,
+                ScannerTestRun.self
+            ],
+            inMemory: true
+        )
 }
 

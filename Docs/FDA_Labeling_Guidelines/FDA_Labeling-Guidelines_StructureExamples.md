@@ -1294,3 +1294,183 @@
   </tbody>
 </table>
 
+
+
+M) Cereal Labels Choosing to Include Nutrition Information for their Cereal when combined with an amount of milk
+
+<table><tbody>
+  <tr>
+    <td colspan="7">Nutrition Facts</td>
+  </tr>
+  <tr>
+    <td colspan="7">About 9 servings per container</td>
+  </tr>
+  <tr>
+    <td colspan="3">Serving size</td>
+    <td colspan="4">1 1/4 cup (41g)</td>
+  </tr>
+  <tr>
+    <td colspan="3"></td>
+    <td colspan="2">Per Serving </td>
+    <td colspan="2">Cereal With <br>1/2 Cup <br>Fat Free Milk</td>
+  </tr>
+  <tr>
+    <td colspan="3">Calories</td>
+    <td colspan="2">160</td>
+    <td colspan="2">200</td>
+  </tr>
+  <tr>
+    <td colspan="3"></td>
+    <td></td>
+    <td>% DV*</td>
+    <td></td>
+    <td>% DV*</td>
+  </tr>
+  <tr>
+    <td colspan="3">Total Fat</td>
+    <td>0g</td>
+    <td>0%</td>
+    <td>0g</td>
+    <td>0%</td>
+  </tr>
+  <tr>
+    <td colspan="3">    Sat. Fat</td>
+    <td>0g</td>
+    <td>0%</td>
+    <td>0g</td>
+    <td>0%</td>
+  </tr>
+  <tr>
+    <td colspan="3">    Trans Fat</td>
+    <td>0g</td>
+    <td></td>
+    <td>0g</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td colspan="3">Cholesterol</td>
+    <td>0mg</td>
+    <td>0%</td>
+    <td>&lt;5mg</td>
+    <td>1%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Sodium</td>
+    <td>190mg</td>
+    <td>8%</td>
+    <td>260mg</td>
+    <td>11%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Total Carb.</td>
+    <td>37g</td>
+    <td>13%</td>
+    <td>43g</td>
+    <td>16%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Dietary Fiber</td>
+    <td>0g</td>
+    <td>0%</td>
+    <td>0g</td>
+    <td>0%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Total Sugars</td>
+    <td>15g</td>
+    <td></td>
+    <td>21g</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td colspan="3">    Incl. Added Sugars</td>
+    <td>15g</td>
+    <td>30%</td>
+    <td>15g</td>
+    <td>30%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Protein</td>
+    <td>2g</td>
+    <td></td>
+    <td>6g</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td colspan="3">Vitamin D</td>
+    <td>0mcg</td>
+    <td>0%</td>
+    <td>1.4mcg</td>
+    <td>8%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Calcium</td>
+    <td>0mg</td>
+    <td>0%</td>
+    <td>150mg</td>
+    <td>10%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Iron</td>
+    <td>5.4mg</td>
+    <td>30%</td>
+    <td>5.4mg</td>
+    <td>30%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Potassium</td>
+    <td>30mg</td>
+    <td>0%</td>
+    <td>220mg</td>
+    <td>4%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Thiamin</td>
+    <td></td>
+    <td>70%</td>
+    <td></td>
+    <td>70%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Niacin</td>
+    <td></td>
+    <td>10%</td>
+    <td></td>
+    <td>10%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Vitamin B6</td>
+    <td></td>
+    <td>10%</td>
+    <td></td>
+    <td>15%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Folate</td>
+    <td colspan="2">40mcg DFE 10%</td>
+    <td colspan="2">40mcg DFE 10%</td>
+  </tr>
+  <tr>
+    <td colspan="3">&nbsp;&nbsp;&nbsp;&nbsp;folic acid</td>
+    <td colspan="2">(25mcg)</td>
+    <td colspan="2">(25mcg)</td>
+  </tr>
+  <tr>
+    <td colspan="3">Pantothenic acid</td>
+    <td></td>
+    <td>10%</td>
+    <td></td>
+    <td>20%</td>
+  </tr>
+  <tr>
+    <td colspan="3">Zinc</td>
+    <td></td>
+    <td>10%</td>
+    <td></td>
+    <td>15%</td>
+  </tr>
+  <tr>
+    <td colspan="7">* The % Daily Value (DV) tells you how much a nutrient <br>in a serving of food contributes to a daily diet. 2,000 <br>calories a day is used for general nutrition advice.</td>
+  </tr>
+</tbody></table>
+
